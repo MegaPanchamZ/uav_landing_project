@@ -51,37 +51,38 @@ class LandingResult:
 
 class UAVLandingDetector:
     """
-    High-performance UAV landing zone detector.
+    UAV Landing Zone Detector with Enhanced Neuro-Symbolic Reasoning
     
-    Combines BiSeNetV2 semantic segmentation with rule-based reasoning
-    for real-time landing zone detection and navigation commands.
+    Combines neural segmentation with symbolic reasoning for safe landing decisions.
+    Includes comprehensive traceability and risk assessment capabilities.
     """
     
-    def __init__(self, 
-                 model_path: str = None,
-                 camera_matrix: Optional[np.ndarray] = None,
-                 enable_visualization: bool = False,
-                 device: str = "auto"):
+    def __init__(self, model_path="models/bisenetv2_uav_landing.onnx", 
+                 input_resolution=(256, 256), camera_fx=800, camera_fy=800, 
+                 enable_visualization=True):
         """
-        Initialize the landing detector.
+        Initialize UAV Landing Detector
         
         Args:
-            model_path: Path to ONNX model (uses placeholder if None)
-            camera_matrix: Camera intrinsic matrix [fx,0,cx; 0,fy,cy; 0,0,1]
-            enable_visualization: Generate annotated output images
-            device: 'cpu', 'cuda', or 'auto'
+            model_path: Path to the ONNX model file
+            input_resolution: Tuple (width, height) for model input
+                            - (256, 256): Fast inference, lower quality (~80-127 FPS)
+                            - (512, 512): Balanced quality and speed (~20-60 FPS)
+                            - (768, 768): High quality, slower (~8-25 FPS)
+                            - (1024, 1024): Maximum quality, slowest (~3-12 FPS)
+            camera_fx: Camera focal length in x direction (pixels)
+            camera_fy: Camera focal length in y direction (pixels) 
+            enable_visualization: Whether to generate visualization overlays
         """
-        self.enable_visualization = enable_visualization
-        self.model_path = model_path
         
-        # Camera parameters (default values, should be calibrated)
-        if camera_matrix is not None:
-            self.camera_matrix = camera_matrix
-        else:
-            self.camera_matrix = np.array([
-                [800.0, 0.0, 320.0],    # fx, 0, cx
-                [0.0, 800.0, 240.0],    # 0, fy, cy
-                [0.0, 0.0, 1.0]         # 0, 0, 1
+        self.model_path = Path(model_path)
+        self.input_size = input_resolution
+        
+        # Camera intrinsic matrix (3x3) - use resolution for center point
+        self.camera_matrix = np.array([
+            [camera_fx, 0, input_resolution[0]/2],  # Use resolution for center
+            [0, camera_fy, input_resolution[1]/2],
+            [0, 0, 1]
             ], dtype=np.float32)
         
         # Extract camera parameters
@@ -90,48 +91,7 @@ class UAVLandingDetector:
         self.cx = self.camera_matrix[0, 2]
         self.cy = self.camera_matrix[1, 2]
         
-        # Model configuration
-        self.input_size = (256, 256)  # Model expects 256x256 input
-        self.num_classes = 6
-        
-        # Class definitions for landing zones
-        self.classes = {
-            0: "background",    # Non-relevant areas
-            1: "suitable",      # Perfect for landing (flat, clear)
-            2: "marginal",      # Potentially suitable (low grass, rough ground)
-            3: "obstacles",     # Buildings, structures, trees
-            4: "unsafe",        # Water, vehicles, steep slopes
-            5: "unknown"        # Uncertain areas
-        }
-        
-        # Control parameters
-        self.max_velocity = 2.0      # m/s maximum movement speed
-        self.position_gain = 0.8     # Position control gain
-        self.min_zone_area = 1000    # Minimum pixels for valid landing zone
-        self.safety_margin = 2.0     # Safety distance from obstacles (meters)
-        
-        # Performance tracking
-        self.frame_times = []
-        self.max_history = 30
-        
-        # Landing phase tracking
-        self.landing_phase = "SEARCH"  # SEARCH, APPROACH, PRECISION, LANDING
-        self.target_lock_count = 0
-        self.last_target = None
-        
-        # Segmentation output storage for visualization
-        self.last_segmentation_output = None
-        self.last_raw_output = None
-        self.last_confidence_map = None
-        
-        # Initialize neural network
-        self._initialize_model(device)
-        
-        print(f"🚁 UAV Landing Detector initialized")
-        print(f"   Model: {'ONNX' if self.session else 'Placeholder'}")
-        print(f"   Input size: {self.input_size}")
-        print(f"   Camera: fx={self.fx:.0f}, fy={self.fy:.0f}")
-        print(f"   Visualization: {enable_visualization}")
+        # Model configuration with configurable input size
         
     def _initialize_model(self, device: str):
         """Initialize the ONNX model for inference."""

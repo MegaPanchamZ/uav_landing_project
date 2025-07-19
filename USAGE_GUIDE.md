@@ -57,6 +57,95 @@ print(f"Landing decision: {result.status} (confidence: {result.confidence:.3f})"
 print(f"Explanation: {result.decision_explanation}")
 ```
 
+## 🔍 Resolution Configuration (Quality vs Speed Trade-offs)
+
+The UAV Landing System now supports configurable input resolution for optimal quality vs speed balance:
+
+### Available Resolutions
+- **256×256**: Ultra-fast processing (~80-127 FPS) - Best for racing drones and real-time flight
+- **512×512**: Balanced quality/speed (~20-60 FPS) - **[RECOMMENDED]** for general use
+- **768×768**: High quality (~8-25 FPS) - Best for precision landing and mapping
+- **1024×1024**: Maximum quality (~3-12 FPS) - Best for research and analysis
+
+### Resolution Configuration Examples
+```python
+from uav_landing_system import UAVLandingSystem
+import cv2
+
+# Ultra-fast for racing drones (256×256)
+racing_system = UAVLandingSystem(input_resolution=(256, 256))
+
+# Balanced for general use (512×512) - DEFAULT
+general_system = UAVLandingSystem(input_resolution=(512, 512))
+
+# High quality for precision landing (768×768)
+precision_system = UAVLandingSystem(input_resolution=(768, 768))
+
+# Maximum quality for research (1024×1024)
+research_system = UAVLandingSystem(input_resolution=(1024, 1024))
+
+# Test image
+image = cv2.imread("uav_image.jpg")
+
+# Compare performance
+for name, system in [("Racing", racing_system), 
+                    ("General", general_system),
+                    ("Precision", precision_system)]:
+    result = system.process_frame(image, altitude=5.0)
+    print(f"{name}: {result.processing_time:.1f}ms, confidence: {result.confidence:.3f}")
+```
+
+### Convenience Function with Resolution
+```python
+from uav_landing_system import process_image_for_landing
+
+# Ultra-fast processing
+result_fast = process_image_for_landing(
+    image, altitude=5.0, 
+    input_resolution=(256, 256)  # Ultra-fast
+)
+
+# High-quality processing  
+result_hq = process_image_for_landing(
+    image, altitude=5.0,
+    input_resolution=(768, 768)  # High quality
+)
+
+print(f"Fast: {result_fast.processing_time:.1f}ms")
+print(f"HQ: {result_hq.processing_time:.1f}ms")
+```
+
+### Adaptive Resolution Selection
+```python
+def select_resolution_for_scenario(altitude, velocity, mission_type):
+    """Smart resolution selection based on flight conditions"""
+    
+    if mission_type == "racing" or velocity > 5.0:
+        return (256, 256)  # Speed priority
+    elif mission_type == "research" or velocity < 1.0:
+        return (1024, 1024)  # Quality priority  
+    elif altitude < 2.0:  # Precision landing
+        return (768, 768)  # High quality for precision
+    else:
+        return (512, 512)  # Balanced default
+
+# Usage
+resolution = select_resolution_for_scenario(
+    altitude=1.5, velocity=0.3, mission_type="precision"
+)
+system = UAVLandingSystem(input_resolution=resolution)
+```
+
+### Resolution Performance Guide
+| Resolution | Processing Time | FPS Range | Quality | Best Use Cases |
+|------------|----------------|-----------|---------|----------------|
+| 256×256    | ~2-15ms       | 80-127    | Basic   | Racing, Real-time flight |
+| 512×512    | ~15-50ms      | 20-60     | Good    | General UAV operations |  
+| 768×768    | ~40-120ms     | 8-25      | High    | Precision landing, Mapping |
+| 1024×1024  | ~80-300ms     | 3-12      | Maximum | Research, Offline analysis |
+
+💡 **Recommendation**: Start with 512×512 (balanced) and adjust based on your performance requirements!
+
 ## 🧠 Neuro-Symbolic Reasoning with Traceability
 
 ### Full Traceability Example

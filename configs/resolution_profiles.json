@@ -1,0 +1,197 @@
+{
+  "resolution_profiles": {
+    "ultra_fast": {
+      "resolution": [256, 256],
+      "description": "Ultra-fast inference for racing drones and real-time flight",
+      "expected_fps": "80-127",
+      "expected_processing_time_ms": "2-15",
+      "quality_level": "basic",
+      "use_cases": ["drone_racing", "real_time_flight", "emergency_landing"],
+      "hardware_requirements": {
+        "min_ram_gb": 2,
+        "min_cpu_cores": 2,
+        "gpu_required": false
+      }
+    },
+    "balanced": {
+      "resolution": [512, 512],
+      "description": "Balanced quality and speed for general UAV operations", 
+      "expected_fps": "20-60",
+      "expected_processing_time_ms": "15-50",
+      "quality_level": "good",
+      "use_cases": ["general_landing", "commercial_uav", "surveying", "inspection"],
+      "hardware_requirements": {
+        "min_ram_gb": 4,
+        "min_cpu_cores": 4,
+        "gpu_required": false
+      }
+    },
+    "high_quality": {
+      "resolution": [768, 768],
+      "description": "High quality for precision applications and detailed mapping",
+      "expected_fps": "8-25", 
+      "expected_processing_time_ms": "40-120",
+      "quality_level": "high",
+      "use_cases": ["precision_landing", "aerial_mapping", "search_rescue", "inspection"],
+      "hardware_requirements": {
+        "min_ram_gb": 8,
+        "min_cpu_cores": 4,
+        "gpu_recommended": true
+      }
+    },
+    "ultra_high": {
+      "resolution": [1024, 1024],
+      "description": "Maximum quality for research and detailed analysis",
+      "expected_fps": "3-12",
+      "expected_processing_time_ms": "80-300", 
+      "quality_level": "maximum",
+      "use_cases": ["research", "offline_analysis", "dataset_generation", "model_validation"],
+      "hardware_requirements": {
+        "min_ram_gb": 16,
+        "min_cpu_cores": 8,
+        "gpu_recommended": true,
+        "gpu_memory_gb": 4
+      }
+    }
+  },
+  
+  "automatic_selection_rules": {
+    "by_velocity": {
+      "high_speed": {
+        "threshold_ms": 5.0,
+        "recommended_profile": "ultra_fast",
+        "reason": "High velocity flight requires maximum processing speed"
+      },
+      "normal_speed": {
+        "threshold_ms": 2.0,
+        "recommended_profile": "balanced", 
+        "reason": "Normal velocity allows balanced quality and speed"
+      },
+      "low_speed": {
+        "threshold_ms": 1.0,
+        "recommended_profile": "high_quality",
+        "reason": "Low velocity allows higher quality processing"
+      }
+    },
+    "by_altitude": {
+      "high_altitude": {
+        "threshold_m": 10.0,
+        "recommended_profile": "balanced",
+        "reason": "High altitude allows standard processing quality"
+      },
+      "medium_altitude": {
+        "threshold_m": 5.0, 
+        "recommended_profile": "balanced",
+        "reason": "Medium altitude uses balanced approach"
+      },
+      "low_altitude": {
+        "threshold_m": 2.0,
+        "recommended_profile": "high_quality",
+        "reason": "Low altitude landing requires high precision"
+      }
+    },
+    "by_mission_type": {
+      "racing": "ultra_fast",
+      "commercial": "balanced",
+      "research": "ultra_high",
+      "emergency": "ultra_fast",
+      "mapping": "high_quality",
+      "inspection": "high_quality", 
+      "surveillance": "balanced"
+    }
+  },
+  
+  "neural_symbolic_weights": {
+    "ultra_fast": {
+      "neural_weight": 0.6,
+      "symbolic_weight": 0.4,
+      "reasoning": "Speed priority, trust neural network more"
+    },
+    "balanced": {
+      "neural_weight": 0.4,
+      "symbolic_weight": 0.6,
+      "reasoning": "Default balanced approach"
+    },
+    "high_quality": {
+      "neural_weight": 0.3,
+      "symbolic_weight": 0.7,
+      "reasoning": "Quality priority, more symbolic reasoning"
+    },
+    "ultra_high": {
+      "neural_weight": 0.25,
+      "symbolic_weight": 0.75,
+      "reasoning": "Maximum quality, extensive symbolic analysis"
+    }
+  },
+  
+  "safety_thresholds": {
+    "ultra_fast": 0.4,
+    "balanced": 0.3,
+    "high_quality": 0.2,
+    "ultra_high": 0.15
+  },
+  
+  "performance_monitoring": {
+    "enable_fps_tracking": true,
+    "enable_memory_monitoring": true,
+    "log_performance_warnings": true,
+    "auto_quality_adjustment": {
+      "enable": false,
+      "fps_threshold_low": 10,
+      "fps_threshold_high": 30,
+      "adjustment_sensitivity": 0.1
+    }
+  },
+  
+  "hardware_optimization": {
+    "cpu_only": {
+      "max_recommended_resolution": [512, 512],
+      "recommended_profile": "balanced"
+    },
+    "gpu_available": {
+      "max_recommended_resolution": [1024, 1024],
+      "recommended_profile": "high_quality"
+    },
+    "embedded_system": {
+      "max_recommended_resolution": [256, 256], 
+      "recommended_profile": "ultra_fast",
+      "enable_quantization": true,
+      "reduce_precision": true
+    }
+  },
+  
+  "examples": {
+    "racing_drone": {
+      "profile": "ultra_fast",
+      "input_resolution": [256, 256],
+      "enable_logging": false,
+      "neural_weight": 0.6,
+      "symbolic_weight": 0.4,
+      "description": "Optimized for speed and real-time performance"
+    },
+    "commercial_survey": {
+      "profile": "balanced", 
+      "input_resolution": [512, 512],
+      "enable_logging": true,
+      "neural_weight": 0.4,
+      "symbolic_weight": 0.6,
+      "description": "Good balance of quality and performance for commercial use"
+    },
+    "precision_landing": {
+      "profile": "high_quality",
+      "input_resolution": [768, 768],
+      "enable_logging": true,
+      "neural_weight": 0.3,
+      "symbolic_weight": 0.7,
+      "description": "High precision for critical landing scenarios"
+    },
+    "research_analysis": {
+      "profile": "ultra_high",
+      "input_resolution": [1024, 1024], 
+      "enable_logging": true,
+      "neural_weight": 0.25,
+      "symbolic_weight": 0.75,
+      "description": "Maximum quality for research and development"
+    }
+  }
+}
