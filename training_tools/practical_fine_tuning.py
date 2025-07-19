@@ -464,11 +464,16 @@ class UAVFineTuner:
                 # Forward pass
                 if self.model.training:
                     main_out, aux_out = self.model(images)
+                    
+                    # Ensure targets are Long type
+                    targets = targets.long()
+                    
                     main_loss = criterion(main_out, targets)
                     aux_loss = criterion(aux_out, targets)
                     loss = main_loss + 0.4 * aux_loss
                 else:
                     main_out = self.model(images)
+                    targets = targets.long()
                     loss = criterion(main_out, targets)
                 
                 # Backward pass
@@ -527,7 +532,7 @@ class UAVFineTuner:
         with torch.no_grad():
             val_pbar = tqdm(val_loader, desc="Validation")
             for images, targets in val_pbar:
-                images, targets = images.to(self.device), targets.to(self.device)
+                images, targets = images.to(self.device), targets.to(self.device).long()
                 
                 outputs = self.model(images)
                 if isinstance(outputs, tuple):
