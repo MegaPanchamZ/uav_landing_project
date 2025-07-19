@@ -177,8 +177,12 @@ class UAVLandingSystem:
         self.detector = UAVLandingDetector(
             model_path=model_path,
             input_resolution=input_resolution,
-            enable_visualization=True
+            enable_visualization=True,
+            device="auto"
         )
+        
+        # Store model path for stats
+        self.model_path = model_path
         
         # Neuro-symbolic reasoning configuration
         self.neural_weight = self.config.get('neural_weight', 0.4)

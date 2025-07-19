@@ -59,7 +59,7 @@ class UAVLandingDetector:
     
     def __init__(self, model_path="models/bisenetv2_uav_landing.onnx", 
                  input_resolution=(256, 256), camera_fx=800, camera_fy=800, 
-                 enable_visualization=True):
+                 enable_visualization=True, device="auto"):
         """
         Initialize UAV Landing Detector
         
@@ -73,10 +73,12 @@ class UAVLandingDetector:
             camera_fx: Camera focal length in x direction (pixels)
             camera_fy: Camera focal length in y direction (pixels) 
             enable_visualization: Whether to generate visualization overlays
+            device: Device for inference ("auto", "cuda", "cpu")
         """
         
         self.model_path = Path(model_path)
         self.input_size = input_resolution
+        self.enable_visualization = enable_visualization
         
         # Camera intrinsic matrix (3x3) - use resolution for center point
         self.camera_matrix = np.array([
@@ -91,7 +93,35 @@ class UAVLandingDetector:
         self.cx = self.camera_matrix[0, 2]
         self.cy = self.camera_matrix[1, 2]
         
-        # Model configuration with configurable input size
+        # Initialize ONNX session attributes
+        self.session = None
+        self.input_name = None
+        self.output_name = None
+        
+        # Initialize segmentation output tracking
+        self.last_segmentation_output = None
+        self.last_raw_output = None
+        self.last_confidence_map = None
+        
+        # Landing zone detection parameters
+        self.min_zone_area = max(1000, (input_resolution[0] * input_resolution[1]) // 100)  # Adaptive to resolution
+        
+        # Navigation parameters
+        self.max_velocity = 2.0  # m/s
+        self.position_gain = 0.5
+        self.safety_margin = 0.3  # meters
+        
+        # State tracking
+        self.landing_phase = "SEARCH"
+        self.target_lock_count = 0
+        self.last_target = None
+        self.frame_times = []
+        self.max_history = 30
+        
+        # Initialize the ONNX model
+        self._initialize_model(device)
+        
+        print(f"✅ UAVLandingDetector initialized with resolution {input_resolution}")
         
     def _initialize_model(self, device: str):
         """Initialize the ONNX model for inference."""

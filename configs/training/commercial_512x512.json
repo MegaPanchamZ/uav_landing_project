@@ -1,0 +1,21 @@
+{
+  "input_resolution": [
+    512,
+    512
+  ],
+  "use_case": "commercial",
+  "epochs": {
+    "stage1": 15,
+    "stage2": 20
+  },
+  "batch_size": 8,
+  "learning_rate": {
+    "stage1": 0.0002,
+    "stage2": 0.0001
+  },
+  "mixed_precision": true,
+  "early_stopping": {
+    "enabled": true,
+    "patience": 5
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "input_resolution": [
+    512,
+    512
+  ],
+  "num_classes": 4,
+  "use_case": "commercial",
+  "epochs": {
+    "stage1": 15,
+    "stage2": 20
+  },
+  "batch_size": 8,
+  "learning_rate": {
+    "stage1": 0.0002,
+    "stage2": 0.0001
+  },
+  "weight_decay": 0.0001,
+  "mixed_precision": true,
+  "augmentation": {
+    "horizontal_flip": 0.5,
+    "rotation": 0.3,
+    "color_jitter": 0.2,
+    "blur": 0.1,
+    "noise": 0.1
+  },
+  "gradient_accumulation": 2,
+  "early_stopping": {
+    "enabled": true,
+    "patience": 5,
+    "min_delta": 0.001
+  },
+  "learning_rate_schedule": {
+    "type": "onecycle",
+    "factor": 2.0
+  },
+  "save_every_n_epochs": 5,
+  "save_best_only": true,
+  "num_workers": 4,
+  "pin_memory": true,
+  "persistent_workers": true
+}

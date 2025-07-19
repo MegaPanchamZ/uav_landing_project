@@ -1,0 +1,22 @@
+{
+  "input_resolution": [
+    1024,
+    1024
+  ],
+  "use_case": "research",
+  "epochs": {
+    "stage1": 25,
+    "stage2": 30
+  },
+  "batch_size": 2,
+  "learning_rate": {
+    "stage1": 0.0001,
+    "stage2": 5e-05
+  },
+  "mixed_precision": true,
+  "gradient_accumulation": 8,
+  "early_stopping": {
+    "enabled": true,
+    "patience": 10
+  }
+}

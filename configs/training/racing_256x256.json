@@ -1,0 +1,21 @@
+{
+  "input_resolution": [
+    256,
+    256
+  ],
+  "use_case": "racing",
+  "epochs": {
+    "stage1": 8,
+    "stage2": 10
+  },
+  "batch_size": 12,
+  "learning_rate": {
+    "stage1": 0.0003,
+    "stage2": 0.00015
+  },
+  "mixed_precision": true,
+  "early_stopping": {
+    "enabled": true,
+    "patience": 3
+  }
+}

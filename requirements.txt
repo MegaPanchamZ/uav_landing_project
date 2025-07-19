@@ -1,11 +1,21 @@
-# Core dependencies for UAV Landing Detector - Single Class Implementation
-opencv-python>=4.8.0
-numpy>=1.21.0
-onnxruntime>=1.15.0  # Use onnxruntime-gpu for GPU support
+# Core dependencies for UAV Landing Detector - Configurable Resolution System
+opencv-python>=4.11.0
+numpy>=2.0.0
+onnxruntime>=1.19.0  # Use onnxruntime-gpu for GPU support
 
-# Optional for model training/conversion (not needed for inference only)
-# torch>=2.0.0
-# torchvision>=0.15.0
+# Training dependencies (optional - uncomment for model training)
+# torch>=2.7.0
+# torchvision>=0.22.0
+# albumentations>=1.4.0
+# matplotlib>=3.8.0
 
 # Essential utilities
 tqdm>=4.64.0
+pathlib  # Built-in module
+logging  # Built-in module
+
+# Development dependencies (optional)
+# jupyter>=1.0.0
+# pytest>=8.0.0
+# black>=24.0.0
+# flake8>=7.0.0
