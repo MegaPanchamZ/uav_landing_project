@@ -1,14 +1,35 @@
-# UAV Landing Zone Detection System
+# UAV Landing Zone Detector - Single Class Implementation
 
-A real-time, robust, and verifiable system for identifying safe landing zones for UAVs using a neural network (BiSeNetV2) coupled with a rule-based symbolic engine.
+🚁 **High-performance, real-time UAV landing zone detection with semantic segmentation + neuro-symbolic reasoning**
 
-## Overview
+## ✨ Features
 
-This system implements a neuro-symbolic approach to UAV landing zone detection, combining:
+- **Single Class Design** - One `UAVLandingDetector` class for all functionality
+- **Real-Time Performance** - Optimized for extreme real-time speed
+- **BiSeNetV2 Integration** - Uses your provided pre-trained models
+- **GPS-Free Navigation** - Visual-only landing zone detection
+- **Plug-and-Play** - Initialize once, call for each frame
+- **Production Ready** - Minimal dependencies, ONNX inference
 
-- **Neural Component**: BiSeNetV2 semantic segmentation for pixel-level scene understanding
-- **Symbolic Component**: Rule-based reasoning for safe landing zone validation and selection
-- **Temporal Stability**: Multi-frame tracking for robust decision making
+## 🚀 Quick Start
+
+```python
+from uav_landing_detector import UAVLandingDetector
+
+# Initialize (warm-up)
+detector = UAVLandingDetector(
+    model_path="bisenetv2_uav_landing.onnx",  # Your ONNX model
+    enable_visualization=True
+)
+
+# Process single frame
+result = detector.process_frame(image, altitude=5.0)
+
+# Get navigation commands
+if result.status == "TARGET_ACQUIRED":
+    print(f"Move: [{result.forward_velocity:.1f}, {result.right_velocity:.1f}, {result.descent_rate:.1f}]")
+    print(f"Target at: {result.distance:.1f}m, bearing: {result.bearing:.1f} rad")
+```
 - **Real-time Performance**: Optimized for real-time processing with performance monitoring
 
 ## Features

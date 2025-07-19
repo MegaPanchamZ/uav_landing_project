@@ -1,23 +1,11 @@
-# Core Dependencies for UAV Landing Zone Detection System
+# Core dependencies for UAV Landing Detector - Single Class Implementation
 opencv-python>=4.8.0
 numpy>=1.21.0
-torch>=2.0.0
-torchvision>=0.15.0
-onnx>=1.14.0
-onnxruntime>=1.15.0
+onnxruntime>=1.15.0  # Use onnxruntime-gpu for GPU support
 
-# Optional GPU acceleration (uncomment if using NVIDIA GPUs)
-# onnxruntime-gpu>=1.15.0
-# tensorrt>=8.5.0
+# Optional for model training/conversion (not needed for inference only)
+# torch>=2.0.0
+# torchvision>=0.15.0
 
-# Development and testing dependencies
-pytest>=7.0.0
-pytest-cov>=4.0.0
-black>=23.0.0
-flake8>=6.0.0
-mypy>=1.0.0
-
-# Additional utilities
+# Essential utilities
 tqdm>=4.64.0
-matplotlib>=3.6.0
-Pillow>=9.0.0
