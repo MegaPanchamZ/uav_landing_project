@@ -73,7 +73,7 @@ class SimpleBiSeNetV2(nn.Module):
         self.classifier = nn.Conv2d(128, num_classes, kernel_size=1)
         
         # Auxiliary classifier for training
-        self.aux_classifier = nn.Conv2d(256, num_classes, kernel_size=1)
+        self.aux_classifier = nn.Conv2d(512, num_classes, kernel_size=1)
         
         # Initialize weights
         self._init_weights()
