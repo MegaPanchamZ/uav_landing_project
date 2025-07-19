@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Quick test of the UAV Landing Detector"""
 
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import numpy as np
 import cv2
 from uav_landing_detector import UAVLandingDetector

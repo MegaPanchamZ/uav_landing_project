@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Test UAV Landing Detector with real ONNX model"""
 
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import numpy as np
 import cv2
 from uav_landing_detector import UAVLandingDetector
@@ -10,7 +14,7 @@ def test_real_model():
     
     # Initialize detector with real model
     detector = UAVLandingDetector(
-        model_path="bisenetv2_uav_landing.onnx",  # Real ONNX model
+        model_path="models/bisenetv2_uav_landing.onnx",  # Real ONNX model
         enable_visualization=True
     )
     

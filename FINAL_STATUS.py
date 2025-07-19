@@ -111,9 +111,10 @@ def show_final_status():
     
     # Check ONNX model
     import os
-    if os.path.exists("bisenetv2_uav_landing.onnx"):
+    model_path = "models/bisenetv2_uav_landing.onnx"
+    if os.path.exists(model_path):
         print("✅ ONNX model converted and ready")
-        print(f"   Size: {os.path.getsize('bisenetv2_uav_landing.onnx') / 1024 / 1024:.1f} MB")
+        print(f"   Size: {os.path.getsize(model_path) / 1024 / 1024:.1f} MB")
     else:
         print("⚠️  ONNX model not found (run convert_to_onnx.py)")
     
