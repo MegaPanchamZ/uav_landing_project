@@ -295,7 +295,7 @@ def main():
                     convert_model(pth_path, onnx_path)
                     
                     print(f"\n✅ Model converted! Update detector initialization:")
-                    print(f"   detector = UAVLandingDetector(model_path='{onnx_path}')")
+                    print(f"   detector = UAVLandingDetector(model_path='models/{onnx_path.split('/')[-1]}')")
                 else:
                     print("❌ Invalid selection")
             except ValueError:
