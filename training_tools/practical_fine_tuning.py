@@ -306,7 +306,7 @@ class DroneDeployDataset(Dataset):
     def _rgb_to_class_label(self, rgb_label):
         """Convert RGB color label to integer class label."""
         h, w, _ = rgb_label.shape
-        class_label = np.zeros((h, w), dtype=np.uint8)
+        class_label = np.zeros((h, w), dtype=np.int64)  # Ensure int64 for PyTorch
         
         for rgb_color, class_id in DRONEDEPLOY_RGB_TO_LANDING.items():
             # Find pixels matching this RGB color
