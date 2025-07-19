@@ -91,7 +91,7 @@ class UAVLandingDetector:
         self.cy = self.camera_matrix[1, 2]
         
         # Model configuration
-        self.input_size = (512, 512)  # Standard input size
+        self.input_size = (256, 256)  # Model expects 256x256 input
         self.num_classes = 6
         
         # Class definitions for landing zones
@@ -118,6 +118,11 @@ class UAVLandingDetector:
         self.landing_phase = "SEARCH"  # SEARCH, APPROACH, PRECISION, LANDING
         self.target_lock_count = 0
         self.last_target = None
+        
+        # Segmentation output storage for visualization
+        self.last_segmentation_output = None
+        self.last_raw_output = None
+        self.last_confidence_map = None
         
         # Initialize neural network
         self._initialize_model(device)
@@ -248,8 +253,34 @@ class UAVLandingDetector:
         # Run inference
         outputs = self.session.run([self.output_name], {self.input_name: input_tensor})
         
+        # Store raw outputs for visualization
+        self.last_raw_output = outputs[0].copy()
+        
         # Postprocess output
         segmentation_map = self._postprocess_segmentation(outputs[0], image.shape[:2])
+        
+        # Store processed outputs
+        self.last_segmentation_output = segmentation_map.copy()
+        
+        # Create confidence map from raw logits
+        if self.last_raw_output.ndim == 4:
+            raw_output = self.last_raw_output[0]  # Remove batch dimension
+        else:
+            raw_output = self.last_raw_output
+            
+        if raw_output.ndim == 3:  # Multi-class output
+            # Softmax to get probabilities
+            exp_output = np.exp(raw_output - np.max(raw_output, axis=0, keepdims=True))
+            probabilities = exp_output / np.sum(exp_output, axis=0, keepdims=True)
+            # Take max probability as confidence
+            confidence_map = np.max(probabilities, axis=0)
+        else:
+            confidence_map = np.ones_like(raw_output) * 0.8  # Default confidence
+        
+        # Resize confidence map to match image
+        self.last_confidence_map = cv2.resize(confidence_map.astype(np.float32), 
+                                            (image.shape[1], image.shape[0]), 
+                                            interpolation=cv2.INTER_LINEAR)
         
         return segmentation_map
     
@@ -374,42 +405,138 @@ class UAVLandingDetector:
             return LandingResult(status="UNSAFE", confidence=best_score)
     
     def _calculate_zone_score(self, zone: Dict, seg_map: np.ndarray, image_shape: Tuple[int, int], altitude: float) -> float:
-        """Calculate landing suitability score for a zone."""
+        """
+        Calculate landing suitability score using neuro-symbolic reasoning.
+        Combines neural network predictions with symbolic domain rules.
+        """
         
-        score = 0.0
+        # Neural component: Extract confidence from segmentation
+        zone_mask = np.zeros_like(seg_map, dtype=bool)
+        x, y, w, h = zone['bbox']
+        zone_mask[y:y+h, x:x+w] = True
         
-        # Size score (larger is better, up to a point)
+        # Get neural confidence (from stored confidence map if available)
+        neural_confidence = 0.8  # Default if confidence map not available
+        if hasattr(self, 'last_confidence_map') and self.last_confidence_map is not None:
+            neural_confidence = np.mean(self.last_confidence_map[zone_mask])
+        
+        # Symbolic reasoning components
+        symbolic_score = 0.0
+        
+        # 1. Size reasoning (larger zones are generally safer)
         normalized_area = zone['area'] / (image_shape[0] * image_shape[1])
-        size_score = min(normalized_area * 10, 1.0)  # Cap at 1.0
-        score += size_score * 0.3
+        if normalized_area > 0.05:  # Large zone (>5% of image)
+            size_score = min(normalized_area * 8, 1.0)
+        elif normalized_area > 0.02:  # Medium zone (2-5% of image)
+            size_score = normalized_area * 15
+        else:  # Small zone (<2% of image)
+            size_score = normalized_area * 20
+        symbolic_score += size_score * 0.3
         
-        # Shape score (prefer squares/rectangles)
+        # 2. Shape reasoning (prefer regular shapes for landing)
         aspect_ratio = zone['aspect_ratio']
-        shape_score = 1.0 - abs(1.0 - aspect_ratio) if aspect_ratio <= 2.0 else 0.5
-        score += shape_score * 0.2
+        if 0.7 <= aspect_ratio <= 1.4:  # Near-square zones (ideal for landing)
+            shape_score = 1.0
+        elif 0.5 <= aspect_ratio <= 2.0:  # Rectangular zones (acceptable)
+            shape_score = 0.8 - abs(1.0 - aspect_ratio) * 0.3
+        else:  # Very elongated zones (less suitable)
+            shape_score = 0.4
         
-        # Solidity score (prefer solid shapes)
-        score += zone['solidity'] * 0.1
+        # Combine with solidity (how "solid" the shape is)
+        shape_score *= zone['solidity']
+        symbolic_score += shape_score * 0.25
         
-        # Center preference (prefer zones near image center)
+        # 3. Spatial reasoning (position matters for UAV landing)
         img_center = (image_shape[1] // 2, image_shape[0] // 2)
         distance_from_center = math.sqrt(
             (zone['center'][0] - img_center[0])**2 + 
             (zone['center'][1] - img_center[1])**2
         )
         max_distance = math.sqrt(img_center[0]**2 + img_center[1]**2)
-        center_score = 1.0 - (distance_from_center / max_distance)
-        score += center_score * 0.2
+        center_preference = 1.0 - (distance_from_center / max_distance)
+        symbolic_score += center_preference * 0.2
         
-        # Altitude consideration (closer = higher confidence)
-        altitude_score = max(0.5, 1.0 - altitude / 20.0)  # Decrease confidence with altitude
-        score *= altitude_score
+        # 4. Altitude-based reasoning (higher altitude = need larger, more obvious zones)
+        if altitude > 10.0:  # High altitude
+            altitude_factor = 1.2 if normalized_area > 0.08 else 0.8  # Prefer very large zones
+        elif altitude > 5.0:  # Medium altitude
+            altitude_factor = 1.1 if normalized_area > 0.04 else 0.9  # Prefer large zones
+        else:  # Low altitude
+            altitude_factor = 1.0  # All sizes acceptable
         
-        # Temporal consistency bonus (if we've been tracking this area)
+        symbolic_score *= altitude_factor
+        
+        # 5. Temporal reasoning (consistency with previous detections)
+        temporal_bonus = 0.0
         if self.last_target and self._zones_overlap(zone, self.last_target):
-            score += 0.2
+            # Reward zones that are consistent with previous detections
+            consistency = self._calculate_zone_consistency(zone, self.last_target)
+            temporal_bonus = consistency * 0.15
         
-        return min(score, 1.0)
+        # 6. Safety reasoning (avoid zones near obstacles or uncertain areas)
+        safety_penalty = self._calculate_safety_penalty(zone, seg_map, altitude)
+        
+        # Neuro-symbolic integration
+        # Combine neural predictions (40%) with symbolic reasoning (60%)
+        neuro_symbolic_score = (
+            neural_confidence * 0.4 +  # Neural network confidence
+            symbolic_score * 0.6 +     # Symbolic domain rules
+            temporal_bonus -           # Temporal consistency bonus
+            safety_penalty             # Safety-based penalty
+        )
+        
+        return max(0.0, min(neuro_symbolic_score, 1.0))
+    
+    def _calculate_zone_consistency(self, current_zone: Dict, last_zone: Dict) -> float:
+        """Calculate consistency between current and previous zone detection."""
+        # Position consistency
+        pos_diff = math.sqrt(
+            (current_zone['center'][0] - last_zone['center'][0])**2 + 
+            (current_zone['center'][1] - last_zone['center'][1])**2
+        )
+        pos_consistency = max(0, 1.0 - pos_diff / 100.0)  # Normalize by 100 pixels
+        
+        # Size consistency
+        size_ratio = min(current_zone['area'], last_zone['area']) / max(current_zone['area'], last_zone['area'])
+        size_consistency = size_ratio
+        
+        # Overall consistency
+        return (pos_consistency * 0.7 + size_consistency * 0.3)
+    
+    def _calculate_safety_penalty(self, zone: Dict, seg_map: np.ndarray, altitude: float) -> float:
+        """Calculate safety penalty based on surrounding context."""
+        x, y, w, h = zone['bbox']
+        
+        # Define safety margin based on altitude
+        safety_margin = max(10, int(altitude * 2))  # More margin for higher altitudes
+        
+        # Expand area to check for obstacles
+        x1 = max(0, x - safety_margin)
+        y1 = max(0, y - safety_margin)
+        x2 = min(seg_map.shape[1], x + w + safety_margin)
+        y2 = min(seg_map.shape[0], y + h + safety_margin)
+        
+        safety_area = seg_map[y1:y2, x1:x2]
+        
+        # Count unsuitable pixels in safety area (assuming class 3 is unsuitable)
+        if safety_area.size > 0:
+            unsuitable_pixels = np.sum(safety_area >= 3)  # Classes 3+ are obstacles/unsuitable
+            total_pixels = safety_area.size
+            unsuitable_ratio = unsuitable_pixels / total_pixels
+            
+            # Penalty increases with unsuitable ratio
+            if unsuitable_ratio > 0.5:
+                safety_penalty = 0.8  # High penalty for very risky areas
+            elif unsuitable_ratio > 0.2:
+                safety_penalty = 0.4  # Medium penalty
+            elif unsuitable_ratio > 0.1:
+                safety_penalty = 0.2  # Low penalty
+            else:
+                safety_penalty = 0.0  # No penalty for safe areas
+        else:
+            safety_penalty = 0.0
+        
+        return safety_penalty
     
     def _is_zone_safe(self, zone: Dict, seg_map: np.ndarray, altitude: float) -> bool:
         """Check if zone is safe for landing."""
@@ -627,6 +754,20 @@ class UAVLandingDetector:
         self.frame_times.clear()
         
         print("🔄 Detector state reset")
+    
+    def get_segmentation_data(self) -> Tuple[Optional[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]]:
+        """
+        Get the last segmentation outputs for visualization.
+        
+        Returns:
+            tuple: (segmentation_mask, raw_output, confidence_map)
+                - segmentation_mask: Class predictions per pixel
+                - raw_output: Raw model logits (before argmax)
+                - confidence_map: Confidence scores per pixel
+        """
+        return (self.last_segmentation_output, 
+                self.last_raw_output, 
+                self.last_confidence_map)
     
     def get_performance_stats(self) -> Dict[str, Any]:
         """Get performance statistics."""
