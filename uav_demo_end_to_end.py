@@ -97,7 +97,7 @@ def run_neuro_symbolic_analysis(image, enhanced_detector):
     start_time = time.time()
     
     # Process with enhanced detector (includes Scallop reasoning)
-    result = enhanced_detector.process_frame_enhanced(image, altitude=25.0)
+    result = enhanced_detector.process_frame(image, altitude=25.0)
     
     processing_time = time.time() - start_time
     
@@ -105,12 +105,14 @@ def run_neuro_symbolic_analysis(image, enhanced_detector):
     print(f"   Confidence: {result.confidence:.3f}")
     print(f"   Processing time: {processing_time:.3f}s") 
     print(f"   Scallop available: {enhanced_detector.scallop_available}")
-    print(f"   Context: {enhanced_detector.scallop_engine.context}")
     
-    if hasattr(result, 'reasoning_trace') and result.reasoning_trace:
-        print(f"   Reasoning steps: {len(result.reasoning_trace)}")
-        for i, trace in enumerate(result.reasoning_trace[:3]):  # Show first 3
-            print(f"     {i+1}. {trace}")
+    if hasattr(enhanced_detector, 'scallop_engine') and enhanced_detector.scallop_engine:
+        print(f"   Context: {enhanced_detector.scallop_engine.context}")
+    
+    # Get reasoning explanation
+    explanation = enhanced_detector.get_reasoning_explanation()
+    print(f"   Reasoning engine: {explanation.get('reasoning_engine', 'N/A')}")
+    print(f"   Use Scallop: {explanation.get('use_scallop', False)}")
     
     return result
 
