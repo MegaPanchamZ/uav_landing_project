@@ -317,6 +317,49 @@ model_quantized = quant.quantize_dynamic(
 3. **Fine-tune** hyperparameters
 4. **Deploy** to edge devices
 5. **Optimize** for specific hardware
+6. **Integrate Neuro-Symbolic Reasoning** with Scallop (See [Scallop Integration Plan](SCALLOP_NEUROSYMBOLIC_INTEGRATION_PLAN.md))
+
+## 🧠 Advanced Neuro-Symbolic Integration
+
+### Scallop Framework Integration
+
+Our training methodology is being enhanced with [Scallop](https://github.com/scallop-lang/scallop), a probabilistic logic programming framework for neuro-symbolic reasoning. This integration will:
+
+- **Replace heuristic rules** with formal probabilistic logic
+- **Enable end-to-end differentiable training** of reasoning rules
+- **Add context-aware mission adaptation** (commercial, emergency, precision)
+- **Provide explainable AI capabilities** for landing decisions
+
+#### Key Benefits:
+- **Probabilistic Facts**: Neural network outputs become probabilistic facts
+- **Weighted Rules**: Context-dependent reasoning with learned weights
+- **Multi-Criteria Optimization**: Formal aggregation of multiple objectives
+- **Differentiable Reasoning**: Rules can be optimized via backpropagation
+
+#### Training Enhancement:
+```python
+# Enhanced training with Scallop integration
+class ScallopEnhancedTraining:
+    def __init__(self):
+        self.neural_net = UltraFastBiSeNet()
+        self.scallop_module = ScallopReasoningModule()
+    
+    def train_step(self, images, targets):
+        # Neural segmentation
+        seg_output = self.neural_net(images)
+        
+        # Scallop reasoning with differentiable weights
+        landing_decision = self.scallop_module(
+            seg_confidences=seg_output,
+            rule_weights=self.learnable_weights
+        )
+        
+        # End-to-end loss
+        loss = criterion(landing_decision, targets)
+        return loss
+```
+
+For complete implementation details, see [SCALLOP_NEUROSYMBOLIC_INTEGRATION_PLAN.md](SCALLOP_NEUROSYMBOLIC_INTEGRATION_PLAN.md).
 
 ---
 
