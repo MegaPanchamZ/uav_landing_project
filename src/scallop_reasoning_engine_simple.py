@@ -47,7 +47,8 @@ class ScallopReasoningEngine:
         # Try to initialize Scallop
         try:
             import scallopy
-            self.scallop_ctx = scallopy.Context(provenance=provenance, k=k)
+            # Use unit provenance for simpler fact addition
+            self.scallop_ctx = scallopy.Context(provenance="unit", k=k)
             self.scallop_available = True
             self._setup_scallop_program()
             logger.info("Scallop reasoning engine initialized")
@@ -131,48 +132,54 @@ class ScallopReasoningEngine:
     def _reason_with_scallop(self, seg_output, conf_map, image_shape, altitude, flatness_map):
         """Reason using real Scallop"""
         
-        # Clear previous facts
-        # Note: In real Scallop we might need to create a new context
-        
-        # Extract facts from neural network outputs
-        safe_zones = self._extract_safe_zones(seg_output, conf_map, image_shape)
-        flat_areas = self._extract_flat_areas(image_shape, flatness_map)
-        obstacles = self._extract_obstacles(seg_output, image_shape)
-        
-        # Add facts to Scallop context
-        if safe_zones:
-            self.scallop_ctx.add_facts("safe_zone", safe_zones)
-        if flat_areas:
-            self.scallop_ctx.add_facts("flat_area", flat_areas)
-        if obstacles:
-            self.scallop_ctx.add_facts("obstacle", obstacles)
-        
-        # Run Scallop reasoning
-        self.scallop_ctx.run()
-        
-        # Extract results
-        landing_zones = list(self.scallop_ctx.relation("landing_zone"))
-        
-        if landing_zones:
-            # Select best zone (first one for now)
-            best_zone = landing_zones[0]
-            confidence = 0.8  # Could get this from Scallop provenance
+        try:
+            # Extract facts from neural network outputs
+            safe_zones = self._extract_safe_zones(seg_output, conf_map, image_shape)
+            flat_areas = self._extract_flat_areas(image_shape, flatness_map)
+            obstacles = self._extract_obstacles(seg_output, image_shape)
             
-            return ScallopLandingResult(
-                status="TARGET_ACQUIRED",
-                confidence=confidence,
-                target_pixel=(int(best_zone[0]), int(best_zone[1])),
-                context=self.context,
-                reasoning_trace=[f"Found {len(landing_zones)} landing zones via Scallop"]
-            )
-        else:
-            return ScallopLandingResult(
-                status="NO_TARGET",
-                confidence=0.0,
-                target_pixel=None,
-                context=self.context,
-                reasoning_trace=["No suitable landing zones found"]
-            )
+            logger.debug(f"Extracted {len(safe_zones)} safe zones, {len(flat_areas)} flat areas, {len(obstacles)} obstacles")
+            
+            # Add facts to Scallop context (clear any existing facts first)
+            if safe_zones:
+                self.scallop_ctx.add_facts("safe_zone", safe_zones)
+            if flat_areas:
+                self.scallop_ctx.add_facts("flat_area", flat_areas)
+            if obstacles:
+                self.scallop_ctx.add_facts("obstacle", obstacles)
+            
+            # Run Scallop reasoning
+            self.scallop_ctx.run()
+            
+            # Extract results
+            landing_zones = list(self.scallop_ctx.relation("landing_zone"))
+            
+            if landing_zones:
+                # Select best zone (first one for now)
+                best_zone = landing_zones[0]
+                confidence = 0.8  # Could get this from Scallop provenance
+                
+                return ScallopLandingResult(
+                    status="TARGET_ACQUIRED",
+                    confidence=confidence,
+                    target_pixel=(int(best_zone[0]), int(best_zone[1])),
+                    context=self.context,
+                    reasoning_trace=[f"Found {len(landing_zones)} landing zones via Scallop"]
+                )
+            else:
+                return ScallopLandingResult(
+                    status="NO_TARGET",
+                    confidence=0.0,
+                    target_pixel=None,
+                    context=self.context,
+                    reasoning_trace=["No suitable landing zones found by Scallop"]
+                )
+                
+        except Exception as e:
+            logger.error(f"Scallop reasoning error: {e}")
+            import traceback
+            logger.debug(f"Full traceback: {traceback.format_exc()}")
+            raise e
     
     def _reason_with_mock(self, seg_output, conf_map, image_shape, altitude, flatness_map):
         """Reason using mock logic"""
@@ -223,7 +230,13 @@ class ScallopReasoningEngine:
         for y in range(0, height, step):
             for x in range(0, width, step):
                 if y < seg_output.shape[0] and x < seg_output.shape[1]:
-                    if seg_output[y, x] == 0:  # Class 0 is suitable
+                    # Get the predicted class (argmax along last dimension if needed)
+                    if len(seg_output.shape) == 3:
+                        predicted_class = np.argmax(seg_output[y, x])
+                    else:
+                        predicted_class = seg_output[y, x]
+                    
+                    if predicted_class == 0:  # Class 0 is suitable
                         confidence = float(conf_map[y, x])
                         if confidence > 0.5:  # Minimum threshold
                             safe_zones.append((x, y, confidence))
@@ -264,7 +277,13 @@ class ScallopReasoningEngine:
         obstacles = []
         
         # Find pixels classified as obstacles (class 3, 4)
-        obstacle_mask = (seg_output == 3) | (seg_output == 4)
+        if len(seg_output.shape) == 3:
+            # Take argmax for multi-class predictions
+            predicted_classes = np.argmax(seg_output, axis=2)
+        else:
+            predicted_classes = seg_output
+            
+        obstacle_mask = (predicted_classes == 3) | (predicted_classes == 4)
         obstacle_points = np.where(obstacle_mask)
         
         # Sample obstacles (don't include all pixels)

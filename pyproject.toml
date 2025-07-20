@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "numpy>=2.3.1",
     "onnx>=1.18.0",
-    "onnxruntime>=1.22.1",
+    "onnxruntime-gpu>=1.22.1",  # GPU support - fallback to onnxruntime for CPU-only
     "opencv-python>=4.11.0.86",
     "torch>=2.7.1",
     "torchvision>=0.22.1",
@@ -20,7 +20,6 @@ dependencies = [
     "dataclasses-json>=0.6.0",
     "pytest-mock>=3.14.1",
     "maturin>=1.9.1",
-    "onnxruntime-gpu>=1.22.0",
 ]
 
 [project.optional-dependencies]
@@ -35,4 +34,8 @@ test = [
     "pytest>=8.0.0",
     "pytest-cov>=4.0.0",
     "pytest-mock>=3.12.0",
+]
+
+cpu-only = [
+    "onnxruntime>=1.22.1",  # CPU-only version for systems without GPU
 ]

@@ -3,8 +3,62 @@
 UAV Landing Zone Detector - Single Class Implementation
 Real-time semantic segmentation + neuro-symbolic reasoning for UAV landing
 
-Usage:
-    detector = UAVLandingDetector()
+Usage:                    if device == "auto":
+                # Try TensorRT first (best), then CUDA, then CPU
+                try:
+                    # Set ONNX Runtime to only show critical errors
+                    ort.set_default_logger_severity(3)  # Only ERROR and FATAL
+                    
+                    # Priority order: TensorRT > CUDA > CPU
+                    available_providers = ort.get_available_providers()
+                    
+                    if 'TensorrtExecutionProvider' in available_providers:
+                        try:
+                            test_session = ort.InferenceSession(self.model_path, providers=['TensorrtExecutionProvider'])
+                            test_session = None  # Clean up
+                            providers = ['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider']
+                            self.actual_device = "TensorRT"
+                            print("🚀 TensorRT acceleration enabled (Optimal)")
+                        except Exception:
+                            # Fall through to CUDA
+                            if 'CUDAExecutionProvider' in available_providers:
+                                try:
+                                    test_session = ort.InferenceSession(self.model_path, providers=['CUDAExecutionProvider'])
+                                    test_session = None  # Clean up
+                                    providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
+                                    self.actual_device = "CUDA"
+                                    print("🚀 CUDA acceleration enabled")
+                                except Exception:
+                                    providers = ['CPUExecutionProvider']
+                                    self.actual_device = "CPU"
+                                    print("💻 Using CPU processing (GPU libraries unavailable)")
+                            else:
+                                providers = ['CPUExecutionProvider']
+                                self.actual_device = "CPU"
+                                print("💻 Using CPU processing (No GPU providers)")
+                    elif 'CUDAExecutionProvider' in available_providers:
+                        try:
+                            test_session = ort.InferenceSession(self.model_path, providers=['CUDAExecutionProvider'])
+                            test_session = None  # Clean up
+                            providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
+                            self.actual_device = "CUDA"
+                            print("🚀 CUDA acceleration enabled")
+                        except Exception:
+                            providers = ['CPUExecutionProvider']
+                            self.actual_device = "CPU"
+                            print("💻 Using CPU processing (CUDA libraries unavailable)")
+                    else:
+                        providers = ['CPUExecutionProvider']
+                        self.actual_device = "CPU"
+                        print("💻 Using CPU processing (No GPU providers)")
+                        
+                except Exception as e:
+                    providers = ['CPUExecutionProvider']
+                    self.actual_device = "CPU"
+                    print(f"💻 Using CPU processing (Error: {e})")
+                finally:
+                    # Keep logging suppressed for cleaner output
+                    passor = UAVLandingDetector()
     result = detector.process_frame(image, altitude=5.0)
 """
 
@@ -20,8 +74,23 @@ try:
     import onnxruntime as ort
     ONNX_AVAILABLE = True
 except ImportError:
+    print("⚠️  ONNXRuntime not available")
     ONNX_AVAILABLE = False
-    print("Warning: ONNX Runtime not available, running in placeholder mode")
+    ort = None
+
+def check_gpu_availability() -> bool:
+    """Check if GPU/CUDA is actually available for ONNX Runtime"""
+    if not ONNX_AVAILABLE or ort is None:
+        return False
+        
+    try:
+        # Check if CUDA provider is in available providers
+        available_providers = ort.get_available_providers()
+        if 'CUDAExecutionProvider' not in available_providers:
+            return False
+        return True
+    except Exception:
+        return False
 
 @dataclass
 class LandingResult:
@@ -73,7 +142,11 @@ class UAVLandingDetector:
             camera_fx: Camera focal length in x direction (pixels)
             camera_fy: Camera focal length in y direction (pixels) 
             enable_visualization: Whether to generate visualization overlays
-            device: Device for inference ("auto", "cuda", "cpu")
+            device: Device for inference ("auto", "tensorrt", "cuda", "cpu")
+                   - "auto": Try TensorRT → CUDA → CPU (recommended)
+                   - "tensorrt": Force TensorRT (fastest, requires TensorRT installation)
+                   - "cuda": Force CUDA (fast, requires CUDA libraries)
+                   - "cpu": Force CPU (compatible, slower)
         """
         
         self.model_path = Path(model_path)
@@ -118,6 +191,10 @@ class UAVLandingDetector:
         self.frame_times = []
         self.max_history = 30
         
+        # Store device preference
+        self.device = device
+        self.actual_device = "CPU"  # Will be updated by _initialize_model
+        
         # Initialize the ONNX model
         self._initialize_model(device)
         
@@ -132,24 +209,61 @@ class UAVLandingDetector:
             return
             
         try:
-            # Set up execution providers
+            # Set up execution providers with better error handling
             providers = []
             if device == "auto":
-                providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
+                # Try CUDA first, fallback to CPU
+                try:
+                    # Suppress CUDA warning temporarily
+                    import warnings
+                    import logging
+                    
+                    # Set ONNX Runtime to only show critical errors
+                    ort.set_default_logger_severity(4)  # Only FATAL errors
+                    
+                    # Test if CUDA is actually available
+                    test_session = ort.InferenceSession(self.model_path, providers=['CUDAExecutionProvider'])
+                    test_session = None  # Clean up
+                    providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
+                    self.actual_device = "GPU"
+                    print("🚀 GPU acceleration enabled (CUDA)")
+                except Exception:
+                    # CUDA failed, use CPU
+                    providers = ['CPUExecutionProvider']
+                    self.actual_device = "CPU"
+                    print("� Using CPU processing (CUDA libraries not available)")
+                finally:
+                    # Keep logging suppressed for cleaner output
+                    pass
+                    
+            elif device == "tensorrt":
+                providers = ['TensorrtExecutionProvider']
+                self.actual_device = "TensorRT"
             elif device == "cuda":
                 providers = ['CUDAExecutionProvider']
+                self.actual_device = "CUDA"
             else:
                 providers = ['CPUExecutionProvider']
+                self.actual_device = "CPU"
                 
             # Create session
             self.session = ort.InferenceSession(self.model_path, providers=providers)
+            
+            # Update actual device based on what's actually being used
+            actual_provider = self.session.get_providers()[0]
+            if 'TensorRT' in actual_provider:
+                self.actual_device = "TensorRT"
+            elif 'CUDA' in actual_provider:
+                self.actual_device = "CUDA"
+            else:
+                self.actual_device = "CPU"
             
             # Get input/output info
             self.input_name = self.session.get_inputs()[0].name
             self.output_name = self.session.get_outputs()[0].name
             
             print(f"✅ Model loaded: {Path(self.model_path).name}")
-            print(f"   Provider: {self.session.get_providers()[0]}")
+            print(f"   Provider: {actual_provider}")
             
         except Exception as e:
             print(f"❌ Model loading failed: {e}")

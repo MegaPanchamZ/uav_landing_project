@@ -1,11 +1,15 @@
 # Core dependencies for UAV Landing Detector - Configurable Resolution System
 opencv-python>=4.11.0
 numpy>=2.0.0
-onnxruntime>=1.19.0  # Use onnxruntime-gpu for GPU support
+onnxruntime-gpu>=1.19.0  # GPU support with CUDA
+# onnxruntime>=1.19.0  # Use this for CPU-only version
+
+# Scallop neuro-symbolic reasoning
+# Note: Scallop will be installed via maturin/uv as it's not on PyPI
 
 # Training dependencies (optional - uncomment for model training)
-# torch>=2.7.0
-# torchvision>=0.22.0
+torch>=2.7.0  # Enable for training
+torchvision>=0.22.0  # Enable for training
 # albumentations>=1.4.0
 # matplotlib>=3.8.0
 
@@ -16,6 +20,7 @@ logging  # Built-in module
 
 # Development dependencies (optional)
 # jupyter>=1.0.0
-# pytest>=8.0.0
+pytest>=8.0.0
+pytest-mock>=3.14.1
 # black>=24.0.0
 # flake8>=7.0.0
