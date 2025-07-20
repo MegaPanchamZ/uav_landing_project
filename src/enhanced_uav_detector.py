@@ -16,12 +16,12 @@ from pathlib import Path
 # Import with fallback for different execution contexts
 try:
     from .uav_landing_detector import UAVLandingDetector, LandingResult
-    from .scallop_reasoning_engine_simple import ScallopReasoningEngine, ScallopLandingResult
+    from .scallop_reasoning_engine import ScallopReasoningEngine, ScallopLandingResult
 except ImportError:
     # Fallback for direct execution or testing
     try:
         from uav_landing_detector import UAVLandingDetector, LandingResult
-        from scallop_reasoning_engine_simple import ScallopReasoningEngine, ScallopLandingResult
+        from scallop_reasoning_engine import ScallopReasoningEngine, ScallopLandingResult
     except ImportError:
         # Create mock classes for testing
         class LandingResult:
@@ -89,7 +89,7 @@ except ImportError:
             def reset_state(self):
                 pass
         
-        from scallop_reasoning_engine_simple import ScallopReasoningEngine, ScallopLandingResult
+        from scallop_reasoning_engine import ScallopReasoningEngine, ScallopLandingResult
 
 logger = logging.getLogger(__name__)
 
