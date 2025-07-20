@@ -1,14 +1,42 @@
 # UAV Landing System with Neurosymbolic Memory
 
-A production-ready UAV landing detection system combining computer vision with neurosymbolic memory for robust performance in challenging scenarios.
+A production-ready UAV landing detection system combining computer vision with neurosymbolic memory and Scallop-based reasoning for robust performance in challenging scenarios.
 
 ## Features
 
-- **Neural Segmentation**: BiSeNetV2-based landing zone detection
+- **Neural Segmentation**: BiSeNetV2-based landing zone detection with ONNX acceleration
+- **Scallop Integration**: Real Scallop v0.2.5 neuro-symbolic reasoning for enhanced decision making
 - **Neurosymbolic Memory**: Three-tier memory system (spatial, temporal, semantic) for handling visual context loss
+- **Multi-Device Support**: TensorRT → CUDA → CPU acceleration hierarchy with automatic fallback
 - **Real-time Performance**: Optimized for flight-critical applications (<100KB memory overhead, ~2-3ms processing impact)
-- **ONNX Runtime**: Cross-platform model inference
-- **Production Ready**: Clean architecture with comprehensive error handling
+- **Production Ready**: Clean, organized architecture with comprehensive error handling and testing
+
+## Quick Start
+
+Use the unified launcher for all operations:
+
+```bash
+# Run main system
+python launcher.py --main
+
+# Run end-to-end demo with UDD6 dataset
+python launcher.py --demo end-to-end
+
+# Verify system integration
+python launcher.py --tool verify
+
+# List all available operations
+python launcher.py --list
+```
+
+## Project Structure
+
+- **`demos/`** - Demonstration scripts and results
+- **`tools/`** - Utility tools and system verification
+- **`setup/`** - Environment setup and configuration scripts
+- **`src/`** - Core system source code
+- **`tests/`** - Test scripts and test cases
+- **`launcher.py`** - Unified entry point for all operations
 
 ## Memory System
 
@@ -17,6 +45,13 @@ The neurosymbolic memory addresses scenarios where visual context is lost (e.g.,
 1. **Spatial Memory**: Grid-based landing zone tracking with confidence decay
 2. **Temporal Memory**: Recent frame history for context continuity  
 3. **Semantic Memory**: Persistent high-confidence landing zones
+
+## Installation
+
+### Quick Install
+```bash
+pip install -e .
+```
 
 ## Installation
 
@@ -35,11 +70,39 @@ pip install -e ".[gpu]"
 pip install -e ".[dev]"
 ```
 
-## Quick Start
-
-### Command Line Usage
+### Setup Scripts
 ```bash
-# Test with webcam
+# Basic system setup
+bash setup/setup.sh
+
+# GPU acceleration (optional)
+bash setup/setup_gpu.sh
+
+# TensorRT optimization (optional)  
+bash setup/setup_tensorrt.sh
+```
+
+## Usage
+
+### Launcher Commands
+```bash
+# Main system operations
+python launcher.py --main                    # Run production system
+python launcher.py --main --args --camera 0  # Run with webcam
+
+# Demonstrations
+python launcher.py --demo end-to-end         # UDD6 dataset demo
+python launcher.py --demo complete           # Complete system demo
+python launcher.py --demo summary            # Generate reports
+
+# System tools
+python launcher.py --tool verify             # Verify integration
+python launcher.py --tool benchmark          # GPU benchmarking
+```
+
+### Direct Script Usage
+```bash
+# Main system (production)
 python uav_landing_main.py --source camera --test-mode
 
 # Process video file
