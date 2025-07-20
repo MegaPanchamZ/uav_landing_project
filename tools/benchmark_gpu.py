@@ -13,7 +13,7 @@ from pathlib import Path
 # Add src to path
 sys.path.append(str(Path(__file__).parent.parent / "src"))
 
-from src.uav_landing_detector import UAVLandingDetector
+from uav_landing_detector import UAVLandingDetector
 
 def benchmark_device(device_name, runs=10):
     """Benchmark a specific device"""

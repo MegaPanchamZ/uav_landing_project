@@ -20,9 +20,9 @@ import matplotlib.patches as patches
 # Add src to path
 sys.path.append(str(Path(__file__).parent.parent / "src"))
 
-from src.uav_landing_detector import UAVLandingDetector
-from src.enhanced_uav_detector import EnhancedUAVDetector
-from src.scallop_reasoning_engine import ScallopReasoningEngine
+from uav_landing_detector import UAVLandingDetector
+from enhanced_uav_detector import EnhancedUAVDetector
+from scallop_reasoning_engine import ScallopReasoningEngine
 
 def find_best_udd6_image():
     """Find a good UDD6 validation image for demo"""

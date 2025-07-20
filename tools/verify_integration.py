@@ -20,17 +20,17 @@ def test_imports():
     try:
         # Test core detector
         print("Testing UAVLandingDetector import...")
-        from src.uav_landing_detector import UAVLandingDetector, LandingResult
+        from uav_landing_detector import UAVLandingDetector, LandingResult
         print("✅ UAVLandingDetector imported successfully")
         
         # Test Scallop reasoning engine (our consolidated version)
         print("Testing ScallopReasoningEngine import...")
-        from src.scallop_reasoning_engine import ScallopReasoningEngine, ScallopLandingResult
+        from scallop_reasoning_engine import ScallopReasoningEngine, ScallopLandingResult
         print("✅ ScallopReasoningEngine imported successfully")
         
         # Test enhanced detector with Scallop integration
         print("Testing EnhancedUAVDetector import...")
-        from src.enhanced_uav_detector import EnhancedUAVDetector
+        from enhanced_uav_detector import EnhancedUAVDetector
         print("✅ EnhancedUAVDetector imported successfully")
         
         # Test that enhanced detector can be instantiated

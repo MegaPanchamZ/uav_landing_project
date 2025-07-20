@@ -47,7 +47,7 @@ Examples:
                       help="Run main UAV landing system")
     group.add_argument("--demo", choices=["end-to-end", "complete", "summary"],
                       help="Run demonstration scripts")
-    group.add_argument("--tool", choices=["verify", "benchmark"],
+    group.add_argument("--tool", choices=["verify", "benchmark", "cleanup-summary"],
                       help="Run utility tools")
     group.add_argument("--list", action="store_true",
                       help="List all available operations")
@@ -79,7 +79,8 @@ Examples:
     elif args.tool:
         tool_scripts = {
             "verify": ("tools/verify_integration.py", "System Integration Verification"),
-            "benchmark": ("tools/benchmark_gpu.py", "GPU Performance Benchmark")
+            "benchmark": ("tools/benchmark_gpu.py", "GPU Performance Benchmark"),
+            "cleanup-summary": ("tools/cleanup_summary.py", "Repository Cleanup Summary")
         }
         script_path, description = tool_scripts[args.tool]
     
@@ -114,6 +115,7 @@ def print_available_operations():
     print("🔧 UTILITY TOOLS")
     print("  --tool verify             Verify system integration")
     print("  --tool benchmark          Benchmark GPU performance")
+    print("  --tool cleanup-summary    Show repository cleanup summary")
     print()
     
     print("📁 DIRECTORY STRUCTURE")
