@@ -1,349 +1,471 @@
-# 🏗️ Architecture Guide
+# Architecture Guide
 
-Detailed architecture guide for the Ultra-Fast UAV Landing Detection system.
+Comprehensive architecture documentation for the UAV Landing System with Neurosymbolic Memory.
 
-## 🎯 System Overview
+## System Overview
 
-The Ultra-Fast UAV Landing Detection system is designed as a **high-performance, production-ready** semantic segmentation solution optimized for real-time UAV applications.
+The UAV Landing System combines semantic segmentation with a neurosymbolic memory system for robust landing zone detection, especially in challenging scenarios like uniform terrain (all grass) where visual cues alone are insufficient.
 
-## 🔧 Architecture Components
+## Core Architecture Components
 
 ### 1. Neural Network Architecture
 
-#### Ultra-Fast BiSeNet Model
+#### BiSeNetV2 Segmentation Model
 
 ```
-Input: RGB Image (3 × 256 × 256)
+Input: RGB Image (3 × 512 × 512)
     ↓
-Backbone: Feature Extraction
-├── Conv2d(3→32) + BN + ReLU       # 256×256
-├── Conv2d(32→64, s=2) + BN + ReLU  # 128×128  
-├── Conv2d(64→128, s=2) + BN + ReLU # 64×64
-└── Conv2d(128→128) + BN + ReLU     # 64×64
+Backbone: ResNet-based Feature Extraction
+├── Spatial Path (High Resolution)
+├── Context Path (Deep Features)
+└── Bilateral Guided Aggregation
     ↓
-Decoder: Upsampling Path
-├── Conv2d(128→64) + BN + ReLU
-└── Conv2d(64→32) + BN + ReLU
+Decoder: Feature Fusion & Upsampling
+├── Auxiliary Head (Training)
+└── Main Head (Inference)
     ↓
-Classifier: Conv2d(32→4)
-    ↓
-Interpolation: Bilinear → 256×256
-    ↓  
-Output: Segmentation (4 × 256 × 256)
+Output: Segmentation Classes (4 × 512 × 512)
 ```
 
-#### Key Design Decisions
+**Key Design Principles:**
+- **BiSeNetV2**: Proven architecture for real-time segmentation
+- **512×512 Input**: Balance between detail and performance
+- **4-Class Output**: Background, Safe, Caution, Danger
+- **ONNX Export**: Cross-platform compatibility
 
-1. **Lightweight Backbone**: Only 333K parameters vs millions in standard models
-2. **No Skip Connections**: Simplified architecture for speed
-3. **Single Decoder Path**: Minimizes computation
-4. **Small Input Size**: 256×256 reduces memory and compute by 4x
-5. **No Bias in Conv Layers**: Memory efficiency optimization
+### 2. Neurosymbolic Memory System
 
-### 2. Training Architecture
-
-#### Staged Fine-Tuning Pipeline
+#### Three-Tier Memory Architecture
 
 ```
-Stage 0: Pre-trained BiSeNetV2 (Cityscapes)
-    ↓ Transfer Learning
-Stage 1: DroneDeploy Fine-tuning (Aerial Adaptation)
-    ↓ Domain Adaptation  
-Stage 2: UDD6 Fine-tuning (Landing Classes)
-    ↓ Task Specialization
-Final Model: Ultra-Fast UAV Landing Detector
+Spatial Memory
+├── Confidence Grid (100×100 cells)
+├── Position Mapping (world coordinates)
+└── Local Landing Zones
+    ↓
+Temporal Memory  
+├── Zone History (observation counts)
+├── Confidence Decay (time-based)
+└── First/Last Seen Timestamps
+    ↓
+Semantic Memory
+├── Environment Classification
+├── Context Associations  
+└── Spatial Relationships
 ```
 
-#### Training Optimizations
-
-- **Mixed Precision Training**: CUDA AMP for 2x speedup
-- **Dynamic Loss Scaling**: Automatic gradient scaling
-- **Persistent Data Workers**: Reduces CPU overhead
-- **Pin Memory**: Faster GPU transfer
-- **Cosine Learning Rate Schedule**: Better convergence
-
-### 3. Data Processing Architecture
-
-#### Input Pipeline
+#### Memory Integration Pipeline
 
 ```
-Raw Image (H × W × 3)
+Visual Perception
     ↓
-Resize → (256 × 256 × 3)
+Landing Zone Detection
     ↓
-Normalize → ImageNet Stats  
-    ↓
-Transpose → (3 × 256 × 256)
-    ↓
-Batch → (B × 3 × 256 × 256)
-    ↓
-Model Inference
-    ↓
-Softmax → Class Probabilities
-    ↓
-Argmax → Class Predictions
-```
-
-#### Data Augmentation Strategy
-
-```python
-# Training augmentations
-RandomRotate90(p=0.3)      # Rotation invariance
-HorizontalFlip(p=0.5)      # Symmetric aerial views
-VerticalFlip(p=0.2)        # Aerial symmetry
-RandomBrightnessContrast() # Lighting variations
-ColorJitter(p=0.2)         # Color robustness
-```
-
-### 4. Inference Architecture
-
-#### ONNX Runtime Pipeline
-
-```
-Image Input
-    ↓
-Preprocessing (CPU)
-    ↓
-ONNX Inference (GPU/CPU)
-    ↓
-Postprocessing (CPU)
-    ↓
-Landing Site Detection
-    ↓
-Safety Assessment
+Memory System
+├── Zone Observation Update
+├── Confidence Propagation
+├── Prediction Generation
+└── Memory-Perception Fusion
     ↓
 Navigation Commands
 ```
 
-#### Performance Optimizations
+### 3. Processing Pipeline Architecture
 
-- **ONNX Export**: Cross-platform compatibility
-- **TensorRT Ready**: NVIDIA GPU optimization
-- **Batch Processing**: Multiple images at once
-- **Memory Pooling**: Reduced allocation overhead
-
-## 🎯 Class Architecture
-
-### Landing Site Classes
-
-```
-Class Hierarchy:
-├── 0: Background
-│   ├── Sky areas
-│   ├── Distant objects
-│   └── Unlabeled regions
-├── 1: Safe Landing ✅
-│   ├── Paved surfaces (roads, parking lots)
-│   ├── Short grass fields
-│   ├── Dirt clearings
-│   └── Landing pads
-├── 2: Caution Landing ⚠️
-│   ├── Tall grass/vegetation
-│   ├── Building rooftops
-│   ├── Uneven terrain
-│   └── Marginal surfaces
-└── 3: Danger/No Landing ❌
-    ├── Buildings/structures
-    ├── Trees and obstacles
-    ├── Vehicles
-    ├── Water bodies
-    └── Steep slopes
-```
-
-### Class Mapping Strategy
+#### Main Detection Flow
 
 ```python
-# Stage 1: DroneDeploy → General aerial understanding
-DRONE_DEPLOY_CLASSES = {
-    0: "Background", 1: "Building", 2: "Road", 
-    3: "Trees", 4: "Car", 5: "Pool", 6: "Other"
-}
-
-# Stage 2: UDD6 → Landing-specific mapping  
-UDD_TO_LANDING = {
-    0: 0,  # Other → Background
-    1: 3,  # Facade → Danger
-    2: 1,  # Road → Safe
-    3: 2,  # Vegetation → Caution  
-    4: 3,  # Vehicle → Danger
-    5: 2,  # Roof → Caution
-}
+def process_frame(image, altitude, velocity, position, heading):
+    # 1. Visual Processing
+    segmentation_mask = neural_network.forward(image)
+    visual_zones = extract_landing_zones(segmentation_mask)
+    
+    # 2. Memory Operations
+    memory.observe_zones(visual_zones, timestamp=now())
+    memory_zones = memory.predict_zones_from_memory()
+    
+    # 3. Fusion Strategy
+    if visual_confidence > threshold:
+        result = use_visual_primary(visual_zones, memory_zones)
+    elif memory_confidence > threshold:
+        result = use_memory_primary(memory_zones, visual_zones)
+    else:
+        result = search_mode()
+    
+    # 4. Navigation Commands
+    return generate_landing_result(result)
 ```
 
-## ⚡ Performance Architecture
-
-### Speed Optimizations
-
-1. **Model Size**: 333K parameters (vs 20M+ in full models)
-2. **Input Resolution**: 256×256 (vs 512×512 or higher)
-3. **Architecture**: Simplified encoder-decoder
-4. **Precision**: Mixed precision training and inference
-5. **Memory**: Optimized memory access patterns
-
-### Memory Architecture
+#### Memory-Enhanced Decision Making
 
 ```
-GPU Memory Usage:
-├── Model Weights: ~1.3 MB
-├── Input Batch: ~1.5 MB (batch=6, 256×256×3)
-├── Activations: ~15 MB (forward pass)
-├── Gradients: ~1.3 MB (training only)
-└── Total: <20 MB (inference), <50 MB (training)
+Decision Flow:
+├── High Visual Confidence → Visual Primary + Memory Backup
+├── Low Visual Confidence → Memory Primary + Visual Assist
+├── No Visual/Memory → Active Search Mode
+└── Conflicting Signals → Conservative Fallback
 ```
 
-### Compute Architecture
+## Data Structures
+
+### Core Data Types
+
+#### LandingResult
+```python
+@dataclass
+class LandingResult:
+    # Detection status
+    status: str  # 'TARGET_ACQUIRED', 'NO_TARGET', 'UNSAFE', 'SEARCHING'
+    confidence: float
+    
+    # Spatial information
+    target_pixel: Optional[Tuple[int, int]]
+    target_world: Optional[Tuple[float, float]]
+    
+    # Navigation commands
+    forward_velocity: float
+    right_velocity: float
+    descent_rate: float
+    yaw_rate: float
+    
+    # Memory integration
+    memory_zones: List[Dict]
+    perception_memory_fusion: str  # 'perception_only', 'memory_only', 'fused'
+    memory_status: Dict
+```
+
+#### MemoryZone
+```python
+@dataclass
+class MemoryZone:
+    # Spatial properties
+    world_position: Tuple[float, float]
+    estimated_size: float
+    
+    # Temporal properties
+    first_seen: float
+    last_seen: float
+    observation_count: int
+    
+    # Quality metrics
+    max_confidence: float
+    spatial_stability: float
+    
+    # Context
+    environment_type: str
+    position_uncertainty: float
+```
+
+## Memory System Architecture
+
+### Spatial Memory Component
+
+**Grid-Based Confidence Map:**
+```python
+class SpatialMemory:
+    def __init__(self, grid_size=100, resolution=0.5):
+        self.confidence_grid = np.zeros((grid_size, grid_size))
+        self.resolution = resolution  # meters per cell
+        self.zones = []  # List of MemoryZone objects
+```
+
+**Features:**
+- World coordinate mapping
+- Multi-resolution grid storage
+- Zone clustering and merging
+- Confidence propagation
+
+### Temporal Memory Component
+
+**Time-Aware Zone Tracking:**
+```python
+class TemporalMemory:
+    def track_zone_history(self, zone, timestamp):
+        # Update observation statistics
+        # Apply confidence decay
+        # Maintain temporal consistency
+```
+
+**Features:**
+- Confidence decay over time
+- Observation frequency tracking
+- Temporal stability metrics
+- Long-term memory retention
+
+### Semantic Memory Component
+
+**Context-Aware Reasoning:**
+```python
+class SemanticMemory:
+    def classify_environment(self, visual_features):
+        # Determine environment type
+        # Associate contextual information
+        # Build spatial relationships
+```
+
+**Features:**
+- Environment classification
+- Contextual associations
+- Spatial relationship modeling
+- Experience-based learning
+
+## Performance Architecture
+
+### Real-Time Constraints
 
 ```
-Inference Pipeline:
-├── Preprocessing: 0.1ms (CPU)
-├── Model Forward: 7.3ms (GPU)
-├── Postprocessing: 0.2ms (CPU)
-└── Total: ~7.6ms (130+ FPS)
-
-Training Pipeline:
-├── Data Loading: ~500ms (CPU, parallel)
-├── Forward Pass: 7.3ms (GPU)
-├── Loss Computation: 0.5ms (GPU)
-├── Backward Pass: 15ms (GPU)
-└── Total: ~2.5s/iteration (batch=6)
+Processing Budget (per frame):
+├── Neural Network: ~20-50ms (GPU)
+├── Memory Operations: ~2-3ms (CPU)
+├── Zone Extraction: ~5ms (CPU)
+├── Navigation Planning: ~1ms (CPU)
+└── Total: <80ms (12+ FPS target)
 ```
 
-## 🔄 Deployment Architecture
+### Memory Efficiency
 
-### ONNX Runtime Integration
+```
+Memory Usage:
+├── ONNX Model: ~25MB (loaded once)
+├── Spatial Grid: ~40KB (100×100 floats)
+├── Zone Storage: ~10KB (typical)
+├── Frame Buffer: ~3MB (512×512×3 + processing)
+└── Total: <50MB runtime memory
+```
+
+### Optimization Strategies
+
+1. **Model Optimization:**
+   - ONNX Runtime with optimized providers
+   - Batch size tuning for throughput
+   - Mixed precision inference
+
+2. **Memory Optimization:**
+   - Efficient grid storage
+   - Zone pruning and cleanup
+   - Lazy computation patterns
+
+3. **Processing Optimization:**
+   - Parallel zone extraction
+   - Cached coordinate transformations
+   - Vectorized operations
+
+## Safety Architecture
+
+### Multi-Layer Safety System
+
+```
+Safety Layers:
+├── Neural Network Confidence Thresholds
+├── Memory System Validation
+├── Geometric Constraints (size, shape)
+├── Temporal Consistency Checks
+├── Emergency Fallback Modes
+└── Hardware Fault Detection
+```
+
+### Failure Mode Handling
 
 ```python
-# Production deployment pattern
-class ProductionDetector:
-    def __init__(self):
-        # Load ONNX model
-        self.session = ort.InferenceSession(
-            'ultra_fast_uav_landing.onnx',
-            providers=['CUDAExecutionProvider', 'CPUExecutionProvider']
-        )
+class SafetySystem:
+    def validate_landing_decision(self, result):
+        # Check confidence thresholds
+        # Validate spatial constraints
+        # Verify temporal consistency
+        # Apply conservative margins
         
-    def detect(self, image):
-        # Preprocessing
-        input_tensor = self.preprocess(image)
-        
-        # Inference
-        output = self.session.run(None, {'input': input_tensor})
-        
-        # Postprocessing
-        return self.postprocess(output[0])
+        if not self.meets_safety_criteria(result):
+            return self.generate_safe_fallback()
 ```
 
-### Hardware Compatibility
+### Emergency Protocols
+
+1. **Low Confidence Mode:** Increase search area, reduce descent rate
+2. **Memory Fallback:** Use only memory when perception fails
+3. **Conservative Mode:** Higher safety margins, slower approach
+4. **Abort Conditions:** Clear criteria for landing abort
+
+## Integration Architecture
+
+### Hardware Integration
 
 ```
-Supported Platforms:
-├── NVIDIA GPU (CUDA)
-│   ├── RTX Series: 130+ FPS
-│   ├── GTX Series: 80+ FPS
-│   └── Jetson: 30+ FPS
-├── CPU
-│   ├── Intel x86: 20+ FPS
-│   ├── AMD x86: 20+ FPS
-│   └── ARM (Raspberry Pi): 5+ FPS
-└── Edge Devices
-    ├── Google Coral: 60+ FPS
-    ├── Intel Neural Compute Stick: 15+ FPS
-    └── Custom FPGA: Variable
+Hardware Stack:
+├── Camera System (RGB input)
+├── IMU/GPS (position/orientation)
+├── Flight Controller Interface
+├── Processing Unit (GPU/CPU)
+└── Communication Links
 ```
 
-## 🧩 Software Architecture
-
-### Modular Design
-
-```
-Core Components:
-├── Neural Engine (onnxruntime)
-├── Preprocessing Pipeline (opencv)
-├── Postprocessing (numpy)
-├── Visualization (matplotlib)
-└── Classical Fallback (opencv)
-
-Support Components:
-├── Configuration Management
-├── Performance Monitoring
-├── Logging and Debugging
-├── Data Pipeline
-└── Testing Framework
-```
-
-### API Design
+### Software Integration
 
 ```python
-# Clean, simple API design
 class UAVLandingDetector:
-    def __init__(self, model_path, device='auto')
-    def detect_landing_sites(self, image) -> LandingResult
-    def process_video_stream(self, source) -> Iterator[LandingResult]
-    def get_performance_stats() -> Dict[str, float]
+    def __init__(self):
+        self.neural_network = load_onnx_model()
+        self.memory_system = NeuroSymbolicMemory()
+        self.safety_system = SafetyValidator()
+    
+    def process_frame(self, image, altitude, velocity, position, heading):
+        # Unified processing pipeline
+        return self.integrated_detection(...)
 ```
 
-## 🔒 Safety Architecture
+## Data Flow Architecture
 
-### Multi-Layer Safety
-
-1. **Neural Network**: Primary detection with confidence scores
-2. **Classical CV**: Fallback using color/texture analysis  
-3. **Rule-Based**: Hard-coded safety constraints
-4. **Temporal Filtering**: Multi-frame consistency checks
-5. **Geometric Validation**: Size and shape requirements
-
-### Failure Modes
+### Information Flow
 
 ```
-Failure Handling:
-├── Model Loading Failure → Classical fallback
-├── Inference Timeout → Previous frame result
-├── Low Confidence → Increase safety margins
-├── Memory Error → Reduce batch size
-└── Hardware Failure → Emergency protocols
+External Sensors → UAVLandingDetector
+├── Visual: Camera → Neural Network → Zone Detection
+├── Spatial: GPS/IMU → Coordinate Transform
+├── Temporal: System Clock → Memory Updates
+└── Context: Flight State → Decision Fusion
+    ↓
+Memory System
+├── Observation Updates
+├── Prediction Generation
+├── Confidence Management
+└── Context Integration
+    ↓
+Decision Fusion → Navigation Commands
 ```
 
-## 📊 Quality Architecture
-
-### Testing Strategy
-
-```
-Test Pyramid:
-├── Unit Tests (Individual functions)
-├── Integration Tests (Component interaction)
-├── Performance Tests (Speed benchmarks)
-├── Safety Tests (Failure scenarios)
-└── End-to-End Tests (Full pipeline)
-```
-
-### Continuous Monitoring
+### State Management
 
 ```python
-# Built-in performance monitoring
-class PerformanceMonitor:
-    def track_inference_time(self, time_ms)
-    def track_accuracy(self, prediction, ground_truth)
-    def track_memory_usage(self, usage_mb)
-    def generate_report(self) -> Dict
+class SystemState:
+    # Persistent state
+    memory_zones: List[MemoryZone]
+    confidence_grid: np.ndarray
+    
+    # Transient state
+    current_frame: np.ndarray
+    flight_parameters: Dict
+    
+    # Configuration
+    thresholds: Dict
+    memory_config: Dict
 ```
 
----
+## Deployment Architecture
 
-## 🚀 Future Architecture Evolution
+### Production Deployment
+
+```
+Deployment Options:
+├── Embedded Systems (Jetson, RPi)
+├── Edge Computing (Intel NUC)
+├── Cloud Integration (batch processing)
+└── Hybrid Modes (local + cloud backup)
+```
+
+### Configuration Management
+
+```python
+# Production configuration
+PRODUCTION_CONFIG = {
+    'model_path': 'models/bisenetv2_uav_landing.onnx',
+    'input_resolution': (512, 512),
+    'memory_enabled': True,
+    'memory_config': {
+        'grid_size': 100,
+        'confidence_decay_rate': 0.98,
+        'memory_horizon': 300.0
+    },
+    'safety_config': {
+        'min_confidence': 0.6,
+        'min_zone_size': 1000,
+        'max_descent_rate': 1.0
+    }
+}
+```
+
+## Testing Architecture
+
+### Test Strategy
+
+```
+Test Coverage:
+├── Unit Tests (individual components)
+├── Integration Tests (system interaction)
+├── Memory Tests (persistence, accuracy)
+├── Performance Tests (real-time constraints)
+├── Safety Tests (failure scenarios)
+└── End-to-End Tests (full mission)
+```
+
+### Validation Framework
+
+```python
+class ValidationSuite:
+    def test_neural_network_accuracy(self):
+        # Segmentation accuracy tests
+    
+    def test_memory_persistence(self):
+        # Memory system reliability
+    
+    def test_real_time_performance(self):
+        # Timing constraints
+    
+    def test_safety_protocols(self):
+        # Failure mode handling
+```
+
+## Future Architecture Evolution
 
 ### Planned Enhancements
 
-1. **Model Quantization**: INT8 for edge deployment
-2. **TensorRT Integration**: NVIDIA optimization
-3. **Multi-Scale Detection**: Variable input sizes
-4. **Ensemble Methods**: Multiple model fusion
-5. **Online Learning**: Continuous adaptation
+1. **Advanced Memory Features:**
+   - Hierarchical memory structures
+   - Transfer learning for new environments
+   - Collaborative memory sharing
+
+2. **Performance Improvements:**
+   - Model quantization (INT8)
+   - TensorRT integration
+   - Multi-threaded processing
+
+3. **Capability Extensions:**
+   - Multi-spectral imaging
+   - 3D scene understanding
+   - Predictive navigation
 
 ### Scalability Considerations
 
-- **Horizontal Scaling**: Multiple model instances
-- **Vertical Scaling**: Larger models for accuracy
-- **Edge Computing**: Distributed inference
-- **Cloud Integration**: Batch processing capabilities
+- **Horizontal Scaling:** Multi-drone coordination
+- **Vertical Scaling:** Enhanced model capacity
+- **Edge Computing:** Distributed processing
+- **Cloud Integration:** Fleet learning systems
 
-**Architecture designed for extreme performance and reliability!** 🎯⚡
+## System Requirements
+
+### Minimum Requirements
+
+```
+Hardware:
+├── CPU: 4+ cores, 2+ GHz
+├── RAM: 4GB minimum, 8GB recommended
+├── GPU: Optional but recommended (CUDA support)
+└── Storage: 1GB for models and data
+
+Software:
+├── Python 3.8+
+├── ONNX Runtime
+├── OpenCV 4.0+
+├── NumPy, SciPy
+└── Optional: CUDA toolkit for GPU
+```
+
+### Recommended Configuration
+
+```
+Optimal Setup:
+├── GPU: RTX 3060 or better
+├── CPU: 8+ cores for parallel processing
+├── RAM: 16GB for comfortable operation
+└── SSD: Fast storage for model loading
+```
+
+This architecture provides a robust, memory-enhanced UAV landing system capable of handling challenging scenarios through the integration of neural perception and symbolic memory systems.

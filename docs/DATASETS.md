@@ -1,21 +1,24 @@
-# 📊 Dataset Guide
+# Dataset Guide
 
-Comprehensive guide to datasets used in the Ultra-Fast UAV Landing Detection system.
+Comprehensive guide to datasets used in the UAV Landing Detection system with Neurosymbolic Memory.
 
-## 📋 Overview
+## Overview
 
-The training pipeline uses **two specialized datasets** in a staged approach:
+The training pipeline uses **two specialized datasets** in a staged approach to create the production BiSeNetV2 model:
 
 1. **DroneDeploy Dataset**: Intermediate aerial view adaptation
 2. **UDD6 Dataset**: Final landing-specific fine-tuning
 
-## 🌍 Stage 1: DroneDeploy Dataset
+The trained model serves as the perception component in our neurosymbolic system, with memory enhancement handling challenging scenarios.
+
+## Stage 1: DroneDeploy Dataset
 
 ### Dataset Information
 - **Name**: DroneDeploy Semantic Segmentation
 - **Source**: DroneDeploy challenge dataset
 - **Purpose**: Aerial view domain adaptation
 - **Location**: `../datasets/drone_deploy_dataset_intermediate/dataset-medium/`
+- **Model Output**: BiSeNetV2 ONNX model for production use
 
 ### Statistics
 - **Total Images**: 55
@@ -23,7 +26,7 @@ The training pipeline uses **two specialized datasets** in a staged approach:
 - **Validation Split**: 11 images
 - **Image Format**: JPG/PNG
 - **Label Format**: RGB color-coded masks
-- **Resolution**: Variable (resized to 256×256)
+- **Resolution**: Variable (resized to 512×512 for current system)
 
 ### Class Definitions
 
@@ -63,13 +66,14 @@ class DroneDeployDataset(Dataset):
         # Apply augmentations
 ```
 
-## 🏙️ Stage 2: UDD6 Dataset
+## Stage 2: UDD6 Dataset
 
 ### Dataset Information
 - **Name**: Urban Drone Dataset (UDD6)
 - **Source**: Urban drone imagery
 - **Purpose**: Landing-specific class fine-tuning
 - **Location**: `../datasets/UDD/UDD/UDD6/`
+- **Output**: Production BiSeNetV2 model optimized for landing detection
 
 ### Statistics
 - **Train Images**: 106
@@ -77,7 +81,7 @@ class DroneDeployDataset(Dataset):
 - **Test Images**: Available but not used
 - **Image Format**: JPG
 - **Label Format**: PNG grayscale masks
-- **Resolution**: Variable (resized to 256×256)
+- **Resolution**: Variable (resized to 512×512 for current system)
 
 ### Original UDD6 Classes
 
@@ -132,12 +136,21 @@ UDD/UDD/UDD6/
 │       └── gt/
 ```
 
-## 🔄 Data Processing Pipeline
+## Data Processing Pipeline
+
+### Model Integration
+The trained BiSeNetV2 model is exported to ONNX format (`models/bisenetv2_uav_landing.onnx`) and integrated into the UAVLandingDetector class. The neurosymbolic memory system enhances this base perception capability.
+
+### Current System Usage
+- **Input Resolution**: 512×512 (production system)
+- **Output Classes**: 4 classes (Background, Safe, Caution, Danger)
+- **Integration**: ONNX Runtime with memory enhancement
+- **Real-time Performance**: 6+ FPS with memory processing
 
 ### Preprocessing Steps
 
 1. **Image Loading**: RGB images loaded with OpenCV/PIL
-2. **Resizing**: All images resized to 256×256 for consistency
+2. **Resizing**: All images resized to 512×512 for current production system
 3. **Normalization**: ImageNet normalization (mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 4. **Label Conversion**: RGB labels → class indices, UDD6 mapping applied
 

@@ -1,10 +1,10 @@
-# 📖 Training Guide
+# Training Guide
 
-This guide covers the complete training pipeline for the Ultra-Fast UAV Landing Detection model.
+This guide covers the complete training pipeline for the UAV Landing Detection model that serves as the perception component in our neurosymbolic system.
 
-## 🔄 Staged Training Pipeline
+## Staged Training Pipeline
 
-Our training follows a **3-stage progressive fine-tuning** approach:
+Our training follows a **2-stage progressive fine-tuning** approach:
 
 ```
 Stage 0: BiSeNetV2 (Cityscapes) → Baseline Segmentation
@@ -14,40 +14,37 @@ Stage 2: UDD6 Dataset → Landing-Specific Classes
 
 ### Why Staged Training?
 
-1. **Transfer Learning**: Leverages pre-trained features
+1. **Transfer Learning**: Leverages pre-trained BiSeNetV2 features
 2. **Domain Adaptation**: Gradually adapts from ground-level to aerial view
 3. **Task Specialization**: Final stage focuses on landing detection
+4. **Production Ready**: Results in ONNX model for neurosymbolic integration
 
-## 📊 Datasets
+## Datasets
 
 ### Stage 1: DroneDeploy Dataset
 - **Size**: 55 images (44 train, 11 val)
 - **Classes**: 7 (Background, Building, Road, Trees, Car, Pool, Other)
 - **Purpose**: Intermediate aerial view adaptation
-- **Resolution**: Variable, resized to 256×256
+- **Resolution**: Variable, resized to 512×512 for current system
 
 ### Stage 2: UDD6 Dataset  
 - **Size**: 106 train samples, 35 validation
 - **Classes**: 6 → mapped to 4 landing classes
 - **Purpose**: Final landing site specialization
-- **Resolution**: Variable, resized to 256×256
+- **Resolution**: Variable, resized to 512×512 for current system
 
-## 🏗️ Model Architecture
+## Model Architecture
 
-### Ultra-Fast BiSeNet
+### BiSeNetV2 for UAV Landing
+
+The model uses the standard BiSeNetV2 architecture optimized for real-time semantic segmentation:
 
 ```python
-class UltraFastBiSeNet(nn.Module):
-    def __init__(self, num_classes=7):
-        super().__init__()
-        
-        # Ultra-lightweight backbone
-        self.backbone = nn.Sequential(
-            nn.Conv2d(3, 32, 3, padding=1, bias=False),    # 256×256
-            nn.BatchNorm2d(32), nn.ReLU(inplace=True),
-            
-            nn.Conv2d(32, 64, 3, stride=2, padding=1, bias=False),  # 128×128
-            nn.BatchNorm2d(64), nn.ReLU(inplace=True),
+# Production model integrated into UAVLandingDetector
+detector = UAVLandingDetector(
+    model_path="models/bisenetv2_uav_landing.onnx",
+    input_resolution=(512, 512)
+)
             
             nn.Conv2d(64, 128, 3, stride=2, padding=1, bias=False), # 64×64
             nn.BatchNorm2d(128), nn.ReLU(inplace=True),

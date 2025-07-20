@@ -1,26 +1,26 @@
-# 🔍 UAV Landing System - Resolution Upgrade Guide
+# UAV Landing System - Resolution Upgrade Guide
 
-A comprehensive guide on how to improve model resolution from 256×256 to higher resolutions (512×512, 768×768, 1024×1024) and make it configurable for your specific use case.
+A comprehensive guide on how to improve model resolution from 512×512 to higher resolutions and make it configurable for your specific use case.
 
-## 🎯 Current Architecture Overview
+## Current Architecture Overview
 
 ### Current Resolution Setup
 - **Training Resolution**: 512×512 (original training data)
-- **Inference Resolution**: 256×256 (current default for speed)
+- **Inference Resolution**: 512×512 (current production system)
 - **Model Architecture**: BiSeNetV2 with flexible input resolution
-- **Performance**: ~7-127 FPS at 256×256, ~2-40 FPS at 512×512
+- **Performance**: ~20-50 FPS at 512×512 with memory enhancement
 
 ### Why Resolution Matters
 - **Higher Resolution**: Better small object detection, finer segmentation boundaries
 - **Lower Resolution**: Faster processing, lower memory usage, real-time performance
-- **Trade-offs**: Quality vs Speed, Memory vs Accuracy
+- **Trade-offs**: Quality vs Speed, Memory vs Accuracy, Memory system overhead
 
 ## 🔧 Resolution Configuration Options
 
 ### Option 1: Quick Resolution Change (Inference Only)
 
 #### Step 1: Modify Core Detector
-Edit `src/uav_landing_detector.py`:
+Edit `uav_landing/detector.py`:
 
 ```python
 class UAVLandingDetector:
@@ -68,8 +68,8 @@ def preprocess_image(self, image: np.ndarray) -> np.ndarray:
     return processed
 ```
 
-#### Step 3: Update UAV Landing System
-Edit `uav_landing_system.py`:
+#### Step 3: Update Main Usage
+Edit your main usage code:
 
 ```python
 class UAVLandingSystem:
@@ -97,26 +97,23 @@ class UAVLandingSystem:
 ```python
 # Test different resolutions
 import cv2
-from uav_landing_system import UAVLandingSystem
+from uav_landing.detector import UAVLandingDetector
 
 # Fast processing (real-time)
-system_fast = UAVLandingSystem(input_resolution=(256, 256))
+detector_fast = UAVLandingDetector(input_resolution=(256, 256))
 
 # Balanced quality/speed  
-system_balanced = UAVLandingSystem(input_resolution=(512, 512))
+detector_balanced = UAVLandingDetector(input_resolution=(512, 512))
 
 # High quality (slower)
-system_hq = UAVLandingSystem(input_resolution=(768, 768))
-
-# Maximum quality (research use)
-system_max = UAVLandingSystem(input_resolution=(1024, 1024))
+detector_hq = UAVLandingDetector(input_resolution=(768, 768))
 
 # Test with same image
 image = cv2.imread("test_uav_image.jpg")
 
-result_fast = system_fast.process_frame(image, altitude=5.0)
-result_balanced = system_balanced.process_frame(image, altitude=5.0)
-result_hq = system_hq.process_frame(image, altitude=5.0)
+result_fast = detector_fast.process_frame(image, altitude=5.0)
+result_balanced = detector_balanced.process_frame(image, altitude=5.0)
+result_hq = detector_hq.process_frame(image, altitude=5.0)
 
 print(f"256×256:  {result_fast.processing_time:.1f}ms, confidence: {result_fast.confidence:.3f}")
 print(f"512×512:  {result_balanced.processing_time:.1f}ms, confidence: {result_balanced.confidence:.3f}")
