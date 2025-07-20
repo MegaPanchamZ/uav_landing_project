@@ -76,7 +76,7 @@ class UAVLandingDetector:
             device: Device for inference ("auto", "cuda", "cpu")
         """
         
-        self.model_path = Path(model_path)
+        self.model_path = Path(model_path) if model_path is not None else None
         self.input_size = input_resolution
         self.enable_visualization = enable_visualization
         

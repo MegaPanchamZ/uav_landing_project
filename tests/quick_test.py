@@ -12,9 +12,11 @@ from uav_landing_detector import UAVLandingDetector
 def quick_test():
     print("🚁 Testing UAV Landing Detector...")
     
-    # Initialize detector
+    # Initialize detector with actual trained model
+    model_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
+                             'trained_models', 'ultra_fast_uav_landing.onnx')
     detector = UAVLandingDetector(
-        model_path=None,  # Use placeholder mode
+        model_path=model_path,
         enable_visualization=True
     )
     
