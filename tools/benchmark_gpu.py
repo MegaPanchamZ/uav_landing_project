@@ -7,6 +7,12 @@ Compare TensorRT vs CUDA vs CPU performance
 
 import time
 import numpy as np
+import sys
+from pathlib import Path
+
+# Add src to path
+sys.path.append(str(Path(__file__).parent.parent / "src"))
+
 from src.uav_landing_detector import UAVLandingDetector
 
 def benchmark_device(device_name, runs=10):
