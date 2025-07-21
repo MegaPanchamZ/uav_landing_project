@@ -372,11 +372,11 @@ class UncertaintyHead(nn.Module):
             nn.Conv2d(in_channels, in_channels // 2, 3, padding=1),
             nn.BatchNorm2d(in_channels // 2),
             nn.ReLU(inplace=True),
-            nn.Dropout2d(0.5, training=True),  # Always active for MC Dropout
+            nn.Dropout2d(0.5),  # MC Dropout
             nn.Conv2d(in_channels // 2, in_channels // 4, 3, padding=1),
             nn.BatchNorm2d(in_channels // 4),
             nn.ReLU(inplace=True),
-            nn.Dropout2d(0.5, training=True),
+            nn.Dropout2d(0.5),  # MC Dropout
             nn.Conv2d(in_channels // 4, 1, 1),  # Single uncertainty channel
             nn.Sigmoid()
         )
@@ -436,7 +436,7 @@ def create_enhanced_model(
     Factory function to create enhanced models.
     
     Args:
-        model_type: Type of model ('enhanced_bisenetv2', 'deeplabv3plus')
+        model_type: Type of model ('enhanced_bisenetv2', 'deeplabv3plus', 'mmseg_bisenetv2')
         num_classes: Number of output classes
         input_resolution: Input image resolution
         uncertainty_estimation: Enable uncertainty quantification
@@ -456,8 +456,19 @@ def create_enhanced_model(
             uncertainty_estimation=uncertainty_estimation,
             **kwargs
         )
+    elif model_type == "mmseg_bisenetv2":
+        # Import here to avoid circular imports
+        from models.mmseg_bisenetv2 import create_mmseg_bisenetv2
+        
+        # Create MMSeg-compatible model with proper transfer learning
+        model = create_mmseg_bisenetv2(
+            num_classes=num_classes,
+            uncertainty_estimation=uncertainty_estimation,
+            pretrained_path=kwargs.get('pretrained_path')
+        )
+        return model  # Already has size info printed
     else:
-        raise ValueError(f"Unknown model type: {model_type}")
+        raise ValueError(f"Unknown model type: {model_type}. Available: enhanced_bisenetv2, deeplabv3plus, mmseg_bisenetv2")
     
     # Wrap with Bayesian uncertainty if requested
     if uncertainty_estimation:

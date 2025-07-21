@@ -34,20 +34,20 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Basic training with enhanced pipeline
-  python train_enhanced_model.py --semantic-drone-path ../datasets/semantic_drone_dataset
+  # Basic transfer learning training (recommended)
+  python train_enhanced_model.py --semantic-drone-path ../datasets/multi_scale_semantic_drone
 
-  # High-quality training with all datasets
+  # High-quality training with all datasets and transfer learning
   python train_enhanced_model.py \\
-    --semantic-drone-path ../datasets/semantic_drone_dataset \\
+    --semantic-drone-path ../datasets/multi_scale_semantic_drone \\
     --udd-path ../datasets/UDD/UDD/UDD6 \\
     --drone-deploy-path ../datasets/drone_deploy_dataset_intermediate/dataset-medium \\
-    --model-type deeplabv3plus \\
+    --model-type mmseg_bisenetv2 \\
     --training-mode high_quality
 
   # Fast training for development
   python train_enhanced_model.py \\
-    --semantic-drone-path ../datasets/semantic_drone_dataset \\
+    --semantic-drone-path ../datasets/multi_scale_semantic_drone \\
     --training-mode fast \\
     --epochs 30
         """
@@ -75,9 +75,9 @@ Examples:
     parser.add_argument(
         '--model-type',
         type=str,
-        choices=['enhanced_bisenetv2', 'deeplabv3plus'],
-        default='enhanced_bisenetv2',
-        help='Model architecture to use'
+        choices=['mmseg_bisenetv2', 'enhanced_bisenetv2', 'deeplabv3plus'],
+        default='mmseg_bisenetv2',
+        help='Model architecture to use (mmseg_bisenetv2 recommended for transfer learning)'
     )
     parser.add_argument(
         '--backbone',
