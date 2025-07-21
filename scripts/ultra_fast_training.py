@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 """
-Ultra-Fast Staged Fine-Tuning Script
+Enhanced UAV Landing Training Script
+===================================
 
-Optimized for speed and low memory usage:
-- Smaller input size (256x256 instead of 512x512)
-- Mixed precision training
-- Efficient data loading
-- Gradient accumulation for small batches
+WARNING: This ultra-fast approach has been superseded by the Enhanced Training Pipeline.
+Critical issues identified in original approach:
+- Catastrophically small model capacity (333K params vs 6M+ needed)
+- Inadequate dataset size (196 images vs 400+ required)
+- Poor class mapping strategy
+- No safety-aware loss functions
+- No uncertainty quantification
+
+RECOMMENDED: Use 'enhanced_training_pipeline.py' instead for production training.
+This script remains for legacy compatibility and quick testing only.
 """
 
 import torch

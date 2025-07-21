@@ -1,15 +1,26 @@
-# Training Guide
+# Enhanced Training Guide
 
-This guide covers the complete training pipeline for the UAV Landing Detection model that serves as the perception component in our neurosymbolic system.
+This guide covers the **professional-grade enhanced training pipeline** for UAV Landing Detection, addressing all critical inadequacies identified in the original approach.
 
-## Staged Training Pipeline
+## ⚠️ CRITICAL IMPROVEMENTS IMPLEMENTED
 
-Our training follows a **2-stage progressive fine-tuning** approach:
+### Original Approach Issues (FIXED):
+- **Catastrophic data insufficiency**: 196 images → **400+ images** (Semantic Drone Dataset)
+- **Inadequate model capacity**: 333K params → **6M+ parameters** (Enhanced BiSeNetV2/DeepLabV3+)  
+- **Poor class mapping**: Naive mapping → **Safety-aware 24→4 class mapping**
+- **Basic loss functions**: Cross-entropy → **Safety-aware multi-component loss**
+- **No uncertainty quantification**: → **Monte Carlo Dropout + Bayesian inference**
+- **Inadequate evaluation**: Basic IoU → **Safety-critical metrics framework**
+
+## Enhanced Training Pipeline
+
+Our **production-ready pipeline** integrates multiple datasets and advanced techniques:
 
 ```
-Stage 0: BiSeNetV2 (Cityscapes) → Baseline Segmentation
-Stage 1: DroneDeploy Dataset → Aerial View Adaptation  
-Stage 2: UDD6 Dataset → Landing-Specific Classes
+Primary: Semantic Drone Dataset (400 images, 24→4 classes) → High-quality foundation
+Secondary: UDD6 Dataset (141 images) → Domain adaptation
+Tertiary: DroneDeploy Dataset (55 images) → Fine-tuning
+Combined: Multi-dataset training with safety-aware weighting
 ```
 
 ### Why Staged Training?
