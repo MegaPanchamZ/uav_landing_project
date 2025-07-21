@@ -338,14 +338,50 @@ class EnhancedTrainingPipeline:
         
         # Load pretrained weights if specified
         pretrained_path = model_config.get('pretrained_path')
-        if pretrained_path and Path(pretrained_path).exists():
-            self._load_pretrained_weights(model, pretrained_path)
+        if pretrained_path:
+            if pretrained_path == "auto_detect_cityscapes_bisenetv2":
+                # Auto-detect best Cityscapes BiSeNetV2 model
+                model = self._load_auto_detected_weights(model)
+            elif Path(pretrained_path).exists():
+                model = self._load_pretrained_weights(model, pretrained_path)
+            else:
+                self.logger.warning(f"⚠️ Pretrained model path not found: {pretrained_path}")
         
         return model
     
     def _load_pretrained_weights(self, model: nn.Module, pretrained_path: str):
-        """Load pretrained weights with adaptation."""
+        """Load pretrained weights with intelligent adaptation."""
         try:
+            # Use our sophisticated pretrained loader
+            from models.pretrained_loader import PretrainedModelLoader
+            
+            # Initialize loader with correct path to model_pths
+            model_pths_path = "../../model_pths"
+            loader = PretrainedModelLoader(model_pths_path, verbose=True)
+            
+            # Load with intelligent adaptation
+            adapted_model, adaptation_info = loader.load_pretrained_weights(
+                model=model,
+                model_path=pretrained_path,
+                adaptation_strategy="intelligent",
+                freeze_backbone=False  # Allow full fine-tuning
+            )
+            
+            # Log adaptation results
+            params_loaded = adaptation_info.get('total_params_loaded', 0)
+            params_total = adaptation_info.get('total_params_model', 1)
+            load_percentage = (params_loaded / params_total) * 100
+            
+            self.logger.info(f"✅ Intelligent weight adaptation completed:")
+            self.logger.info(f"   Loaded: {params_loaded:,}/{params_total:,} parameters ({load_percentage:.1f}%)")
+            self.logger.info(f"   Adapted layers: {len(adaptation_info.get('adapted_layers', []))}")
+            
+            return adapted_model
+            
+        except Exception as e:
+            self.logger.warning(f"⚠️ Sophisticated loader failed, falling back to basic loading: {e}")
+            
+            # Fallback to basic loading
             checkpoint = torch.load(pretrained_path, map_location=self.device)
             
             if 'state_dict' in checkpoint:
@@ -353,23 +389,53 @@ class EnhancedTrainingPipeline:
             else:
                 state_dict = checkpoint
             
-            # Adapt state dict for different architectures
+            # Basic adaptation
             model_dict = model.state_dict()
             adapted_dict = {}
             
             for k, v in state_dict.items():
-                if k in model_dict and v.size() == model_dict[k].size():
-                    adapted_dict[k] = v
+                clean_k = k.replace('module.', '')  # Remove DataParallel prefix
+                if clean_k in model_dict and v.size() == model_dict[clean_k].size():
+                    adapted_dict[clean_k] = v
                 else:
                     self.logger.debug(f"Skipping {k}: size mismatch or not found")
             
             model_dict.update(adapted_dict)
             model.load_state_dict(model_dict, strict=False)
             
-            self.logger.info(f"✅ Loaded {len(adapted_dict)}/{len(state_dict)} pretrained weights")
+            self.logger.info(f"✅ Basic loading: {len(adapted_dict)}/{len(state_dict)} weights")
+            
+            return model
+    
+    def _load_auto_detected_weights(self, model: nn.Module) -> nn.Module:
+        """Auto-detect and load the best available Cityscapes BiSeNetV2 model."""
+        try:
+            from models.pretrained_loader import load_cityscapes_bisenetv2
+            
+            self.logger.info("🔍 Auto-detecting best Cityscapes BiSeNetV2 model...")
+            
+            # Use convenience function to load best Cityscapes model
+            adapted_model, adaptation_info = load_cityscapes_bisenetv2(
+                model=model,
+                model_paths_root="../../model_pths",
+                freeze_backbone=False
+            )
+            
+            # Log results
+            params_loaded = adaptation_info.get('total_params_loaded', 0)
+            params_total = adaptation_info.get('total_params_model', 1)
+            load_percentage = (params_loaded / params_total) * 100
+            
+            self.logger.info(f"✅ Auto-detected model loading completed:")
+            self.logger.info(f"   Source: {adaptation_info.get('source_model', 'Unknown')}")
+            self.logger.info(f"   Loaded: {params_loaded:,}/{params_total:,} parameters ({load_percentage:.1f}%)")
+            
+            return adapted_model
             
         except Exception as e:
-            self.logger.warning(f"⚠️ Could not load pretrained weights: {e}")
+            self.logger.warning(f"⚠️ Auto-detection failed: {e}")
+            self.logger.info("Continuing with randomly initialized weights...")
+            return model
     
     def create_loss_function(self) -> nn.Module:
         """Create sophisticated loss function for safety-aware training."""

@@ -16,7 +16,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Tuple, Dict, Optional, List
 import torchvision.models as models
-from torchvision.models.segmentation import deeplabv3_plus
+import torchvision.models.segmentation as seg_models
 import math
 
 
@@ -185,7 +185,7 @@ class DeepLabV3Plus(nn.Module):
         self.uncertainty_estimation = uncertainty_estimation
         
         # Use pretrained DeepLabV3+ as base
-        self.model = deeplabv3_plus.deeplabv3_resnet101(
+        self.model = seg_models.deeplabv3_resnet101(
             pretrained=False,
             num_classes=num_classes
         )
@@ -201,7 +201,7 @@ class DeepLabV3Plus(nn.Module):
         """Load and adapt pretrained weights."""
         try:
             # Load COCO pretrained weights
-            pretrained = models.segmentation.deeplabv3_resnet101(pretrained=True)
+            pretrained = seg_models.deeplabv3_resnet101(pretrained=True)
             
             # Copy backbone weights
             pretrained_dict = pretrained.state_dict()

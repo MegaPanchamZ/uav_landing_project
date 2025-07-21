@@ -208,8 +208,13 @@ Examples:
     # Model configuration updates
     config['model']['type'] = args.model_type
     config['model']['kwargs']['backbone'] = args.backbone
+    
+    # Handle pretrained model selection
     if args.pretrained_model:
         config['model']['pretrained_path'] = args.pretrained_model
+    else:
+        # Auto-detect best available BiSeNetV2 model from model_pths
+        config['model']['pretrained_path'] = "auto_detect_cityscapes_bisenetv2"
     
     # Training configuration updates
     if args.epochs:
