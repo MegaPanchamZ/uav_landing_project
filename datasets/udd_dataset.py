@@ -34,14 +34,14 @@ import albumentations as A
 class UDDDataset(Dataset):
     """UDD dataset for UAV landing detection."""
     
-    # Original 6 classes to 4 landing classes mapping
+    # UDD actual class values to 4 landing classes mapping
+    # Based on inspection: [0, 16, 90, 108, 119]
     CLASS_MAPPING = {
-        0: 0,  # Other → Background
-        1: 3,  # Facade → Danger (buildings)
-        2: 1,  # Road → Safe
-        3: 2,  # Vegetation → Caution
-        4: 3,  # Vehicle → Danger
-        5: 2,  # Roof → Caution (could be landing zone)
+        0: 0,    # Other → Background
+        16: 3,   # Facade → Danger (buildings)
+        90: 1,   # Road → Safe
+        108: 2,  # Vegetation → Caution
+        119: 2,  # Roof → Caution (could be landing zone)
     }
     
     LANDING_CLASSES = ['Background', 'Safe', 'Caution', 'Danger']

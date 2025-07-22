@@ -36,15 +36,16 @@ import albumentations as A
 class DroneDeployDataset(Dataset):
     """DroneDeploy dataset with height maps for UAV landing detection."""
     
-    # Original 7 classes to 4 landing classes mapping
+    # DroneDeploy actual class values to 4 landing classes mapping
+    # Based on inspection: [81, 91, 99, 105, 132, 155, 255]
     CLASS_MAPPING = {
-        0: 0,  # Background → Background
-        1: 3,  # Building → Danger  
-        2: 1,  # Road → Safe
-        3: 2,  # Trees → Caution
-        4: 3,  # Car → Danger
-        5: 3,  # Pool → Danger (water hazard)
-        6: 0,  # Other → Background
+        81: 3,   # Building → Danger
+        91: 1,   # Road → Safe  
+        99: 3,   # Car → Danger
+        105: 0,  # Background/Other → Background
+        132: 2,  # Trees → Caution
+        155: 3,  # Pool/Water → Danger
+        255: 0,  # Background/Other → Background
     }
     
     LANDING_CLASSES = ['Background', 'Safe', 'Caution', 'Danger']
