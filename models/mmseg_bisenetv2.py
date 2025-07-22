@@ -175,7 +175,7 @@ class SemanticBranch(nn.Module):
         )
         
         # Context Embedding - Match MMSeg architecture
-        self.stage4_CEBlock = ContextEmbeddingBlock(128, 64)
+        self.stage4_CEBlock = ContextEmbeddingBlock(128, 128)
         self.stage5_CEBlock = ContextEmbeddingBlock(128, 128)
     
     def forward(self, x):

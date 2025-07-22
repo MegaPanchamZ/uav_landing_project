@@ -330,3 +330,5 @@ The Enhanced UAV Landing Detection system now meets **professional-grade require
 - **Safety-first evaluation framework**
 
 The system is now **production-ready** for careful deployment in UAV landing applications with appropriate safety protocols and human oversight. 
+
+`python scripts/progressive_training.py --drone-deploy-path ../datasets/drone_deploy_dataset_intermediate/dataset-medium --udd-path ../datasets/UDD/UDD/UDD5 --semantic-drone-path ../datasets/Aerial_Semantic_Segmentation_Drone_Dataset/dataset/semantic_drone_dataset --epochs-per-stage 8 --batch-size 4 --use-augmentation --augmentation-factor 20`

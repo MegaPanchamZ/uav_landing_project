@@ -18,6 +18,7 @@ Features:
 import cv2
 import numpy as np
 import torch
+import torch.nn.functional as F
 from torch.utils.data import Dataset
 from pathlib import Path
 from typing import Tuple, List, Dict, Any, Optional
@@ -217,27 +218,13 @@ class MultiScaleAugmentedDataset(Dataset):
             
             # Weather effects
             A.OneOf([
-                A.RandomFog(fog_coef_lower=0.1, fog_coef_upper=0.4, alpha_coef=0.1, p=1.0),
-                A.RandomRain(
-                    slant_lower=-10, slant_upper=10,
-                    drop_length=10, drop_width=1,
-                    drop_color=(200, 200, 200),
-                    blur_value=1, p=1.0
-                ),
-                A.RandomSunFlare(
-                    flare_roi=(0, 0, 1, 0.5),
-                    angle_lower=0, angle_upper=1,
-                    num_flare_circles_lower=1, num_flare_circles_upper=2,
-                    p=1.0
-                ),
+                A.RandomFog(p=1.0),
+                A.RandomRain(p=1.0),
+                A.RandomSunFlare(p=1.0),
             ], p=0.2),
             
             # Shadow variations (clouds, objects)
-            A.RandomShadow(
-                shadow_roi=(0, 0.5, 1, 1),
-                num_shadows_lower=1, num_shadows_upper=2,
-                shadow_dimension=5, p=0.15
-            ),
+            A.RandomShadow(p=0.15),
             
             # Color variations (atmospheric effects, camera settings)
             A.OneOf([
@@ -258,8 +245,8 @@ class MultiScaleAugmentedDataset(Dataset):
             
             # Noise (sensor noise, compression artifacts)
             A.OneOf([
-                A.GaussNoise(var_limit=(5, 25), p=1.0),
-                A.ISONoise(color_shift=(0.01, 0.05), intensity=(0.1, 0.5), p=1.0),
+                A.GaussNoise(p=1.0),
+                A.ISONoise(p=1.0),
             ], p=0.2),
             
             # Perspective variations (slight camera tilt)
@@ -270,7 +257,7 @@ class MultiScaleAugmentedDataset(Dataset):
                     scale_limit=0.1, 
                     rotate_limit=5, 
                     border_mode=cv2.BORDER_CONSTANT,
-                    value=0, p=1.0
+                    p=1.0
                 ),
             ], p=0.3),
             
@@ -345,12 +332,38 @@ class MultiScaleAugmentedDataset(Dataset):
                 patch_mask = augmented['mask']
             except Exception as e:
                 # Fallback: basic conversion
-                patch_image = torch.from_numpy(patch_image).permute(2, 0, 1).float() / 255.0
+                if len(patch_image.shape) == 3:
+                    patch_image = torch.from_numpy(patch_image).permute(2, 0, 1).float() / 255.0
+                else:
+                    patch_image = torch.from_numpy(patch_image).float() / 255.0
                 patch_mask = torch.from_numpy(patch_mask).long()
         else:
             # Basic conversion
-            patch_image = torch.from_numpy(patch_image).permute(2, 0, 1).float() / 255.0
+            if len(patch_image.shape) == 3:
+                patch_image = torch.from_numpy(patch_image).permute(2, 0, 1).float() / 255.0
+            else:
+                patch_image = torch.from_numpy(patch_image).float() / 255.0
             patch_mask = torch.from_numpy(patch_mask).long()
+        
+        # Ensure consistent tensor shapes for DataLoader
+        target_h, target_w = patch_meta['scale'][::-1]
+        if isinstance(patch_image, torch.Tensor):
+            if len(patch_image.shape) == 3:  # CHW
+                if patch_image.shape[1] != target_h or patch_image.shape[2] != target_w:
+                    patch_image = F.interpolate(
+                        patch_image.unsqueeze(0), 
+                        size=(target_h, target_w), 
+                        mode='bilinear', 
+                        align_corners=False
+                    ).squeeze(0)
+        
+        if isinstance(patch_mask, torch.Tensor):
+            if patch_mask.shape[0] != target_h or patch_mask.shape[1] != target_w:
+                patch_mask = F.interpolate(
+                    patch_mask.unsqueeze(0).unsqueeze(0).float(), 
+                    size=(target_h, target_w), 
+                    mode='nearest'
+                ).squeeze(0).squeeze(0).long()
         
         # Create sample
         sample = {

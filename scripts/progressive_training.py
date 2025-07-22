@@ -27,6 +27,7 @@ from datasets.drone_deploy_dataset import DroneDeployDataset, create_drone_deplo
 from datasets.udd_dataset import UDDDataset, create_udd_transforms  
 from datasets.semantic_drone_dataset import SemanticDroneDataset, create_semantic_drone_transforms
 from datasets.enhanced_augmentation import MultiScaleAugmentedDataset, create_augmented_datasets
+from datasets.cached_augmentation import CachedAugmentedDataset
 from models.enhanced_architectures import create_enhanced_model
 from losses.safety_aware_losses import CombinedSafetyLoss
 from safety_evaluation.safety_metrics import SafetyAwareEvaluator
@@ -73,9 +74,23 @@ class ProgressiveTrainer:
             use_height=True
         )
         
-        # Apply multi-scale augmentation to training set
-        if self.config.get('use_augmentation', True):
-            print(f"   🚀 Applying multi-scale augmentation...")
+        # Apply augmentation to training set
+        if self.config.get('use_cached_augmentation', False):
+            print(f"   💾 Loading cached augmented dataset...")
+            train_dataset = CachedAugmentedDataset(
+                base_dataset=train_dataset,
+                cache_dir=self.config.get('cache_dir', 'cache/augmented_datasets'),
+                dataset_name='drone_deploy',
+                patch_scales=[(512, 512), (768, 768)],
+                augmentation_factor=self.config.get('augmentation_factor', 20),
+                min_object_ratio=0.1,
+                use_overlapping=True,
+                overlap_ratio=0.3,
+                uav_augmentations=True,
+                force_rebuild=False
+            )
+        elif self.config.get('use_augmentation', True):
+            print(f"   🚀 Applying real-time multi-scale augmentation...")
             train_dataset = MultiScaleAugmentedDataset(
                 base_dataset=train_dataset,
                 patch_scales=[(512, 512), (768, 768)],
@@ -90,16 +105,16 @@ class ProgressiveTrainer:
             train_dataset, 
             batch_size=self.config['batch_size'],
             shuffle=True,
-            num_workers=4,
-            pin_memory=True
+            num_workers=0,  # Disable multiprocessing
+            pin_memory=False
         )
         
         val_loader = DataLoader(
             val_dataset,
             batch_size=self.config['batch_size'],
             shuffle=False,
-            num_workers=4,
-            pin_memory=True
+            num_workers=0,  # Disable multiprocessing
+            pin_memory=False
         )
         
         return {
@@ -126,9 +141,23 @@ class ProgressiveTrainer:
             transform=create_udd_transforms(is_training=False)
         )
         
-        # Apply multi-scale augmentation to training set
-        if self.config.get('use_augmentation', True):
-            print(f"   🚀 Applying multi-scale augmentation...")
+        # Apply augmentation to training set
+        if self.config.get('use_cached_augmentation', False):
+            print(f"   💾 Loading cached augmented dataset...")
+            train_dataset = CachedAugmentedDataset(
+                base_dataset=train_dataset,
+                cache_dir=self.config.get('cache_dir', 'cache/augmented_datasets'),
+                dataset_name='udd',
+                patch_scales=[(512, 512)],
+                augmentation_factor=self.config.get('augmentation_factor', 15),
+                min_object_ratio=0.15,
+                use_overlapping=True,
+                overlap_ratio=0.2,
+                uav_augmentations=True,
+                force_rebuild=False
+            )
+        elif self.config.get('use_augmentation', True):
+            print(f"   🚀 Applying real-time multi-scale augmentation...")
             train_dataset = MultiScaleAugmentedDataset(
                 base_dataset=train_dataset,
                 patch_scales=[(512, 512)],
@@ -143,16 +172,16 @@ class ProgressiveTrainer:
             train_dataset,
             batch_size=self.config['batch_size'],
             shuffle=True,
-            num_workers=4,
-            pin_memory=True
+            num_workers=0,  # Disable multiprocessing
+            pin_memory=False
         )
         
         val_loader = DataLoader(
             val_dataset,
             batch_size=self.config['batch_size'],
             shuffle=False,
-            num_workers=4,
-            pin_memory=True
+            num_workers=0,  # Disable multiprocessing
+            pin_memory=False
         )
         
         return {
@@ -181,9 +210,23 @@ class ProgressiveTrainer:
             class_mapping='enhanced_4_class'
         )
         
-        # Apply multi-scale augmentation to training set (MAXIMUM augmentation for best dataset)
-        if self.config.get('use_augmentation', True):
-            print(f"   🚀 Applying MAXIMUM multi-scale augmentation...")
+        # Apply augmentation to training set (MAXIMUM augmentation for best dataset)
+        if self.config.get('use_cached_augmentation', False):
+            print(f"   💾 Loading cached augmented dataset (MAXIMUM)...")
+            train_dataset = CachedAugmentedDataset(
+                base_dataset=train_dataset,
+                cache_dir=self.config.get('cache_dir', 'cache/augmented_datasets'),
+                dataset_name='semantic_drone',
+                patch_scales=[(512, 512), (768, 768), (1024, 1024)],  # All scales
+                augmentation_factor=self.config.get('augmentation_factor', 25),  # Maximum patches
+                min_object_ratio=0.05,  # More permissive for diversity
+                use_overlapping=True,
+                overlap_ratio=0.25,
+                uav_augmentations=True,  # Full UAV augmentations
+                force_rebuild=False
+            )
+        elif self.config.get('use_augmentation', True):
+            print(f"   🚀 Applying MAXIMUM real-time multi-scale augmentation...")
             train_dataset = MultiScaleAugmentedDataset(
                 base_dataset=train_dataset,
                 patch_scales=[(512, 512), (768, 768), (1024, 1024)],  # All scales
@@ -198,16 +241,16 @@ class ProgressiveTrainer:
             train_dataset,
             batch_size=self.config['batch_size'],
             shuffle=True,
-            num_workers=4,
-            pin_memory=True
+            num_workers=0,  # Disable multiprocessing
+            pin_memory=False
         )
         
         val_loader = DataLoader(
             val_dataset,
             batch_size=self.config['batch_size'],
             shuffle=False,
-            num_workers=4,
-            pin_memory=True
+            num_workers=0,  # Disable multiprocessing
+            pin_memory=False
         )
         
         return {
@@ -248,8 +291,7 @@ class ProgressiveTrainer:
         
         # Create loss function
         criterion = CombinedSafetyLoss(
-            safety_weights=[1.0, 2.0, 1.5, 3.0],  # Background, Safe, Caution, Danger
-            ignore_index=255
+            safety_weights=[1.0, 2.0, 1.5, 3.0]  # Background, Safe, Caution, Danger
         )
         
         # Create optimizer with different learning rates per stage
@@ -459,6 +501,10 @@ def main():
                         help='Use multi-scale augmentation')
     parser.add_argument('--augmentation-factor', type=int, default=20,
                         help='Augmentation factor for patch extraction')
+    parser.add_argument('--use-cached-augmentation', action='store_true', default=False,
+                        help='Use pre-cached augmented datasets (much faster)')
+    parser.add_argument('--cache-dir', type=str, default='cache/augmented_datasets',
+                        help='Directory containing cached augmented datasets')
     
     # Output
     parser.add_argument('--output-dir', type=str, default='outputs/progressive_training',
@@ -476,7 +522,9 @@ def main():
         'base_lr': args.base_lr,
         'output_dir': args.output_dir,
         'use_augmentation': args.use_augmentation,
-        'augmentation_factor': args.augmentation_factor
+        'augmentation_factor': args.augmentation_factor,
+        'use_cached_augmentation': args.use_cached_augmentation,
+        'cache_dir': args.cache_dir
     }
     
     # Create trainer and run
