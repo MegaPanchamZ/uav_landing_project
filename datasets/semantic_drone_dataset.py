@@ -104,7 +104,7 @@ class SemanticDroneDataset(Dataset):
         self.image_cache = {} if cache_images else None
         self.label_cache = {} if cache_images else None
         
-        print(f"📊 SemanticDroneDataset initialized:")
+        print(f"SemanticDroneDataset initialized:")
         print(f"   Split: {split} ({len(self.file_indices)} samples)")
         print(f"   Classes: {len(self.landing_classes)} landing classes")
         print(f"   Resolution: {target_resolution}")

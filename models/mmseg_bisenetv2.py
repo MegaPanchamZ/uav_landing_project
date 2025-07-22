@@ -445,7 +445,7 @@ class MMSegBiSeNetV2(nn.Module):
             pretrained_path: Path to pretrained model
             num_classes_pretrained: Number of classes in pretrained model (19 for Cityscapes)
         """
-        print(f"🔄 Loading MMSeg BiSeNetV2 weights from: {pretrained_path}")
+        print(f"Loading MMSeg BiSeNetV2 weights from: {pretrained_path}")
         
         checkpoint = torch.load(pretrained_path, map_location='cpu')
         if 'state_dict' in checkpoint:
