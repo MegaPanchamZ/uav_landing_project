@@ -1,0 +1,47 @@
+2025-07-22 09:45:27,195 - INFO -    Device: cpu
+2025-07-22 09:45:27,195 - INFO -    Mixed Precision: False
+2025-07-22 09:45:27,195 - INFO -    Output Directory: outputs\enhanced_training
+2025-07-22 09:47:49,710 - INFO -    Device: cpu
+2025-07-22 09:47:49,710 - INFO -    Mixed Precision: False
+2025-07-22 09:47:49,710 - INFO -    Output Directory: outputs\enhanced_training
+2025-07-22 09:47:50,181 - INFO - Continuing with randomly initialized weights...
+2025-07-22 09:54:03,557 - INFO - Enhanced Training Pipeline Initialized
+2025-07-22 09:54:03,557 - INFO -    Device: cpu
+2025-07-22 09:54:03,558 - INFO -    Mixed Precision: False
+2025-07-22 09:54:03,559 - INFO -    Output Directory: outputs\enhanced_training
+2025-07-22 09:54:03,559 - INFO - Creating multi-dataset training setup...
+2025-07-22 09:54:03,589 - INFO - Semantic Drone Dataset: 280 train, 60 val, 60 test
+2025-07-22 09:54:03,589 - WARNING - UDD Dataset not available
+2025-07-22 09:54:03,590 - WARNING - DroneDeploy Dataset not available
+2025-07-22 09:54:03,590 - INFO - Total Training Samples: 280
+2025-07-22 09:54:03,591 - INFO - Starting Enhanced Training Pipeline
+2025-07-22 09:54:03,975 - INFO - Auto-detecting best Cityscapes BiSeNetV2 model...
+2025-07-22 09:54:07,243 - WARNING - Auto-detection failed: Error(s) in loading state_dict for MMSegBiSeNetV2:
+	size mismatch for backbone.semantic.stage4_CEBlock.conv_last.conv.weight: copying a param with shape torch.Size([64, 128, 3, 3]) from checkpoint, the shape in current model is torch.Size([64, 64, 3, 3]).
+	size mismatch for decode_head.convs.0.conv.weight: copying a param with shape torch.Size([1024, 128, 3, 3]) from checkpoint, the shape in current model is torch.Size([1024, 1024, 3, 3]).
+	size mismatch for auxiliary_head.1.convs.0.conv.weight: copying a param with shape torch.Size([64, 32, 3, 3]) from checkpoint, the shape in current model is torch.Size([64, 64, 3, 3]).
+	size mismatch for auxiliary_head.2.convs.0.conv.weight: copying a param with shape torch.Size([256, 64, 3, 3]) from checkpoint, the shape in current model is torch.Size([256, 256, 3, 3]).
+	size mismatch for auxiliary_head.3.convs.0.conv.weight: copying a param with shape torch.Size([1024, 128, 3, 3]) from checkpoint, the shape in current model is torch.Size([1024, 1024, 3, 3]).
+2025-07-22 09:54:07,244 - INFO - Continuing with randomly initialized weights...
+2025-07-22 10:09:30,130 - INFO - Enhanced Training Pipeline Initialized
+2025-07-22 10:09:30,130 - INFO -    Device: cpu
+2025-07-22 10:09:30,130 - INFO -    Mixed Precision: False
+2025-07-22 10:09:30,130 - INFO -    Output Directory: outputs\enhanced_training
+2025-07-22 10:09:30,131 - INFO - Creating multi-dataset training setup...
+2025-07-22 10:09:30,162 - INFO - Semantic Drone Dataset: 280 train, 60 val, 60 test
+2025-07-22 10:09:30,163 - WARNING - UDD Dataset not available
+2025-07-22 10:09:30,163 - WARNING - DroneDeploy Dataset not available
+2025-07-22 10:09:30,164 - INFO - Total Training Samples: 280
+2025-07-22 10:09:30,165 - INFO - Starting Enhanced Training Pipeline
+2025-07-22 10:09:30,331 - INFO - Auto-detecting best Cityscapes BiSeNetV2 model...
+2025-07-22 10:09:30,399 - WARNING - Auto-detection failed: Error(s) in loading state_dict for MMSegBiSeNetV2:
+	size mismatch for backbone.semantic.stage4_CEBlock.conv_last.conv.weight: copying a param with shape torch.Size([64, 128, 3, 3]) from checkpoint, the shape in current model is torch.Size([64, 64, 3, 3]).
+	size mismatch for decode_head.convs.0.conv.weight: copying a param with shape torch.Size([128, 128, 3, 3]) from checkpoint, the shape in current model is torch.Size([128, 1024, 3, 3]).
+	size mismatch for decode_head.conv_seg.weight: copying a param with shape torch.Size([4, 1024, 1, 1]) from checkpoint, the shape in current model is torch.Size([4, 128, 1, 1]).
+	size mismatch for auxiliary_head.1.convs.0.conv.weight: copying a param with shape torch.Size([32, 32, 3, 3]) from checkpoint, the shape in current model is torch.Size([32, 64, 3, 3]).
+	size mismatch for auxiliary_head.1.conv_seg.weight: copying a param with shape torch.Size([4, 64, 1, 1]) from checkpoint, the shape in current model is torch.Size([4, 32, 1, 1]).
+	size mismatch for auxiliary_head.2.convs.0.conv.weight: copying a param with shape torch.Size([128, 64, 3, 3]) from checkpoint, the shape in current model is torch.Size([128, 256, 3, 3]).
+	size mismatch for auxiliary_head.2.conv_seg.weight: copying a param with shape torch.Size([4, 256, 1, 1]) from checkpoint, the shape in current model is torch.Size([4, 128, 1, 1]).
+	size mismatch for auxiliary_head.3.convs.0.conv.weight: copying a param with shape torch.Size([128, 128, 3, 3]) from checkpoint, the shape in current model is torch.Size([128, 1024, 3, 3]).
+	size mismatch for auxiliary_head.3.conv_seg.weight: copying a param with shape torch.Size([4, 1024, 1, 1]) from checkpoint, the shape in current model is torch.Size([4, 128, 1, 1]).
+2025-07-22 10:09:30,401 - INFO - Continuing with randomly initialized weights...

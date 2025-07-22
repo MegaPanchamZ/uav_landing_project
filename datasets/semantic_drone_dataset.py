@@ -212,6 +212,10 @@ class SemanticDroneDataset(Dataset):
         # Map original classes to landing classes
         mapped_label = self._map_classes(label)
         
+        # Store original labels for confidence computation (before transforms)
+        original_label_for_confidence = label.copy()
+        mapped_label_for_confidence = mapped_label.copy()
+        
         # Apply transforms
         if self.transform:
             transformed = self.transform(image=image, mask=mapped_label)
@@ -233,8 +237,13 @@ class SemanticDroneDataset(Dataset):
         
         # Add confidence map if requested
         if self.return_confidence:
-            confidence = self._compute_confidence_map(label, mapped_label)
-            sample['confidence'] = confidence
+            # Use pre-transform labels for confidence computation
+            confidence = self._compute_confidence_map(original_label_for_confidence, mapped_label_for_confidence)
+            # Resize confidence to match transformed label if necessary
+            if hasattr(mapped_label, 'shape') and confidence.shape != mapped_label.shape[-2:]:
+                target_shape = mapped_label.shape[-2:][::-1] if hasattr(mapped_label, 'shape') else (512, 512)
+                confidence = cv2.resize(confidence.astype(np.float32), target_shape, interpolation=cv2.INTER_NEAREST)
+            sample['confidence'] = torch.from_numpy(confidence).float()
         
         return sample
     

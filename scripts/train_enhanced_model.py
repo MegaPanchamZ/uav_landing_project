@@ -17,11 +17,20 @@ This addresses all critical inadequacies identified in the original approach.
 import argparse
 import json
 import sys
+import os
 from pathlib import Path
 import torch
 
+# Set UTF-8 encoding for Windows console
+if sys.platform == 'win32':
+    os.environ['PYTHONIOENCODING'] = 'utf-8'
+
 # Add the parent directory to Python path for imports
 sys.path.append(str(Path(__file__).parent.parent))
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from training.enhanced_training_pipeline import EnhancedTrainingPipeline, create_training_config
 
@@ -237,28 +246,28 @@ Examples:
         config['device'] = args.device
     
     # Print configuration summary
-    print("🚀 Enhanced UAV Landing Training Configuration")
+    print("Enhanced UAV Landing Training Configuration")
     print("=" * 60)
-    print(f"📊 Datasets:")
+    print(f"Datasets:")
     print(f"   Primary: {args.semantic_drone_path}")
     if args.udd_path:
         print(f"   Secondary: {args.udd_path}")
     if args.drone_deploy_path:
         print(f"   Tertiary: {args.drone_deploy_path}")
     
-    print(f"\n🏗️ Model: {args.model_type}")
+    print(f"\nModel: {args.model_type}")
     print(f"   Backbone: {args.backbone}")
     print(f"   Input Resolution: {config['input_resolution']}")
     print(f"   Uncertainty Estimation: {config['model']['uncertainty_estimation']}")
     
-    print(f"\n🎯 Training:")
+    print(f"\nTraining:")
     print(f"   Mode: {args.training_mode}")
     print(f"   Epochs: {config['epochs']}")
     print(f"   Batch Size: {config['batch_size']}")
     print(f"   Loss: {config['loss']['type']}")
     print(f"   Safety Weights: {config['loss']['safety_weights']}")
     
-    print(f"\n💾 Output: {args.output_dir}")
+    print(f"\nOutput: {args.output_dir}")
     
     # Initialize enhanced training pipeline
     pipeline = EnhancedTrainingPipeline(
@@ -269,34 +278,34 @@ Examples:
     
     try:
         # Create datasets
-        print("\n📊 Creating datasets...")
+        print("\nCreating datasets...")
         train_loader, val_loader, test_loader = pipeline.create_datasets()
         
         if not train_loader:
-            print("❌ No training data available!")
+            print("No training data available!")
             return 1
         
         if not val_loader:
-            print("⚠️ No validation data available - using test set")
+            print("No validation data available - using test set")
             val_loader = test_loader
         
-        print(f"✅ Training samples: {len(train_loader.dataset)}")
+        print(f"Training samples: {len(train_loader.dataset)}")
         if val_loader:
-            print(f"✅ Validation samples: {len(val_loader.dataset)}")
+            print(f"Validation samples: {len(val_loader.dataset)}")
         if test_loader:
-            print(f"✅ Test samples: {len(test_loader.dataset)}")
+            print(f"Test samples: {len(test_loader.dataset)}")
         
         # Start training
-        print("\n🚀 Starting enhanced training...")
+        print("\nStarting enhanced training...")
         model = pipeline.train(train_loader, val_loader)
         
         # Final evaluation on test set
         if test_loader and test_loader != val_loader:
-            print("\n🧪 Final evaluation on test set...")
+            print("\nFinal evaluation on test set...")
             criterion = pipeline.create_loss_function()
             test_metrics = pipeline.validate_epoch(model, test_loader, criterion)
             
-            print("📊 Test Results:")
+            print("Test Results:")
             print(f"   Test Loss: {test_metrics['loss']:.4f}")
             print(f"   Test mIoU: {test_metrics.get('miou', 0.0):.4f}")
             print(f"   Safety Score: {test_metrics.get('safety_score', 0.0):.4f}")
@@ -336,20 +345,20 @@ Examples:
                     }
                 )
                 
-                print(f"✅ ONNX model saved: {onnx_path}")
+                print(f"ONNX model saved: {onnx_path}")
         except Exception as e:
-            print(f"⚠️ ONNX export failed: {e}")
+            print(f"ONNX export failed: {e}")
         
-        print("\n🎉 Enhanced training completed successfully!")
-        print(f"📁 Results saved in: {args.output_dir}")
+        print("\nEnhanced training completed successfully!")
+        print(f"Results saved in: {args.output_dir}")
         
         return 0
         
     except KeyboardInterrupt:
-        print("\n🛑 Training interrupted by user")
+        print("\nTraining interrupted by user")
         return 1
     except Exception as e:
-        print(f"\n❌ Training failed: {e}")
+        print(f"\nTraining failed: {e}")
         import traceback
         traceback.print_exc()
         return 1

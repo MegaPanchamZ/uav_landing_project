@@ -41,7 +41,7 @@ from losses.safety_aware_losses import (
     SafetyFocalLoss, BoundaryLoss, UncertaintyLoss, 
     CombinedSafetyLoss, DiceLoss
 )
-from evaluation.safety_metrics import SafetyAwareEvaluator
+from safety_evaluation.safety_metrics import SafetyAwareEvaluator
 
 
 class EnhancedTrainingPipeline:
@@ -96,22 +96,28 @@ class EnhancedTrainingPipeline:
         self.best_metrics = {'safety_score': 0.0, 'miou': 0.0}
         self.training_history = []
         
-        self.logger.info(f"🚀 Enhanced Training Pipeline Initialized")
+        self.logger.info(f"Enhanced Training Pipeline Initialized")
         self.logger.info(f"   Device: {self.device}")
         self.logger.info(f"   Mixed Precision: {self.scaler is not None}")
         self.logger.info(f"   Output Directory: {self.output_dir}")
     
     def _setup_logging(self):
-        """Setup comprehensive logging."""
+        """Setup comprehensive logging with Windows Unicode support."""
         log_file = self.output_dir / "training.log"
         
+        # Setup file handler with UTF-8 encoding
+        file_handler = logging.FileHandler(log_file, encoding='utf-8')
+        file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+        
+        # Setup console handler with UTF-8 encoding for Windows
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+        
+        # Configure root logger
         logging.basicConfig(
             level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.FileHandler(log_file),
-                logging.StreamHandler()
-            ]
+            handlers=[file_handler, console_handler],
+            force=True  # Override any existing configuration
         )
         self.logger = logging.getLogger(__name__)
     
@@ -122,7 +128,7 @@ class EnhancedTrainingPipeline:
         Returns:
             Tuple of (train_loader, val_loader, test_loader)
         """
-        self.logger.info("📊 Creating multi-dataset training setup...")
+        self.logger.info("Creating multi-dataset training setup...")
         
         # Define transforms
         train_transform = self._create_advanced_transforms(is_training=True)
@@ -147,7 +153,7 @@ class EnhancedTrainingPipeline:
             )
             
             datasets.append(('semantic_drone', semantic_train, semantic_val, semantic_test))
-            self.logger.info(f"✅ Semantic Drone Dataset: {len(semantic_train)} train, {len(semantic_val)} val, {len(semantic_test)} test")
+            self.logger.info(f"Semantic Drone Dataset: {len(semantic_train)} train, {len(semantic_val)} val, {len(semantic_test)} test")
         
         # 2. UDD Dataset (secondary)
         udd_path = self.config.get('udd_path')
@@ -158,9 +164,9 @@ class EnhancedTrainingPipeline:
                 udd_val = UDDDataset(udd_path, split="val", transform=val_transform)
                 
                 datasets.append(('udd', udd_train, udd_val, None))
-                self.logger.info(f"✅ UDD Dataset: {len(udd_train)} train, {len(udd_val)} val")
+                self.logger.info(f"UDD Dataset: {len(udd_train)} train, {len(udd_val)} val")
             except ImportError:
-                self.logger.warning("⚠️ UDD Dataset not available")
+                self.logger.warning("UDD Dataset not available")
         
         # 3. DroneDeploy Dataset (tertiary)
         drone_deploy_path = self.config.get('drone_deploy_path')
@@ -171,9 +177,9 @@ class EnhancedTrainingPipeline:
                 dd_val = DroneDeployDataset(drone_deploy_path, split="val", transform=val_transform)
                 
                 datasets.append(('drone_deploy', dd_train, dd_val, None))
-                self.logger.info(f"✅ DroneDeploy Dataset: {len(dd_train)} train, {len(dd_val)} val")
+                self.logger.info(f"DroneDeploy Dataset: {len(dd_train)} train, {len(dd_val)} val")
             except ImportError:
-                self.logger.warning("⚠️ DroneDeploy Dataset not available")
+                self.logger.warning("DroneDeploy Dataset not available")
         
         if not datasets:
             raise ValueError("No datasets available! Please provide at least one dataset path.")
@@ -209,7 +215,7 @@ class EnhancedTrainingPipeline:
         ) if combined_test else None
         
         total_samples = len(combined_train)
-        self.logger.info(f"🎯 Total Training Samples: {total_samples}")
+        self.logger.info(f"Total Training Samples: {total_samples}")
         
         return train_loader, val_loader, test_loader
     
@@ -310,14 +316,18 @@ class EnhancedTrainingPipeline:
             sampler = WeightedRandomSampler(weights, len(dataset))
             shuffle = False  # Mutually exclusive with sampler
         
+        # Set num_workers to 0 on Windows to avoid multiprocessing issues
+        import platform
+        num_workers = 0 if platform.system() == 'Windows' else self.config.get('num_workers', 4)
+        
         return DataLoader(
             dataset,
             batch_size=batch_size,
             shuffle=shuffle,
             sampler=sampler,
-            num_workers=self.config.get('num_workers', 8),
-            pin_memory=True,
-            persistent_workers=True,
+            num_workers=num_workers,
+            pin_memory=self.device.type == 'cuda',  # Only pin memory if using CUDA
+            persistent_workers=num_workers > 0,  # Only use persistent workers if num_workers > 0
             drop_last=True if shuffle else False
         )
     
@@ -345,7 +355,7 @@ class EnhancedTrainingPipeline:
             elif Path(pretrained_path).exists():
                 model = self._load_pretrained_weights(model, pretrained_path)
             else:
-                self.logger.warning(f"⚠️ Pretrained model path not found: {pretrained_path}")
+                self.logger.warning(f"Pretrained model path not found: {pretrained_path}")
         
         return model
     
@@ -356,7 +366,8 @@ class EnhancedTrainingPipeline:
             from models.pretrained_loader import PretrainedModelLoader
             
             # Initialize loader with correct path to model_pths
-            model_pths_path = "../../model_pths"
+            project_root = Path(__file__).parent.parent.parent  # Go up from training/ to uav_landing_project/ to landing-system/
+            model_pths_path = str(project_root / "model_pths")
             loader = PretrainedModelLoader(model_pths_path, verbose=True)
             
             # Load with intelligent adaptation
@@ -372,14 +383,14 @@ class EnhancedTrainingPipeline:
             params_total = adaptation_info.get('total_params_model', 1)
             load_percentage = (params_loaded / params_total) * 100
             
-            self.logger.info(f"✅ Intelligent weight adaptation completed:")
+            self.logger.info(f"Intelligent weight adaptation completed:")
             self.logger.info(f"   Loaded: {params_loaded:,}/{params_total:,} parameters ({load_percentage:.1f}%)")
             self.logger.info(f"   Adapted layers: {len(adaptation_info.get('adapted_layers', []))}")
             
             return adapted_model
             
         except Exception as e:
-            self.logger.warning(f"⚠️ Sophisticated loader failed, falling back to basic loading: {e}")
+            self.logger.warning(f"Sophisticated loader failed, falling back to basic loading: {e}")
             
             # Fallback to basic loading
             checkpoint = torch.load(pretrained_path, map_location=self.device)
@@ -403,7 +414,7 @@ class EnhancedTrainingPipeline:
             model_dict.update(adapted_dict)
             model.load_state_dict(model_dict, strict=False)
             
-            self.logger.info(f"✅ Basic loading: {len(adapted_dict)}/{len(state_dict)} weights")
+            self.logger.info(f"Basic loading: {len(adapted_dict)}/{len(state_dict)} weights")
             
             return model
     
@@ -412,12 +423,17 @@ class EnhancedTrainingPipeline:
         try:
             from models.pretrained_loader import load_cityscapes_bisenetv2
             
-            self.logger.info("🔍 Auto-detecting best Cityscapes BiSeNetV2 model...")
+            self.logger.info("Auto-detecting best Cityscapes BiSeNetV2 model...")
             
             # Use convenience function to load best Cityscapes model
+            # Fix path to be relative to project root, not script location
+            import os
+            project_root = Path(__file__).parent.parent.parent  # Go up from training/ to uav_landing_project/ to landing-system/
+            model_paths_root = project_root / "model_pths"
+            
             adapted_model, adaptation_info = load_cityscapes_bisenetv2(
                 model=model,
-                model_paths_root="../../model_pths",
+                model_paths_root=str(model_paths_root),
                 freeze_backbone=False
             )
             
@@ -426,14 +442,14 @@ class EnhancedTrainingPipeline:
             params_total = adaptation_info.get('total_params_model', 1)
             load_percentage = (params_loaded / params_total) * 100
             
-            self.logger.info(f"✅ Auto-detected model loading completed:")
+            self.logger.info(f"Auto-detected model loading completed:")
             self.logger.info(f"   Source: {adaptation_info.get('source_model', 'Unknown')}")
             self.logger.info(f"   Loaded: {params_loaded:,}/{params_total:,} parameters ({load_percentage:.1f}%)")
             
             return adapted_model
             
         except Exception as e:
-            self.logger.warning(f"⚠️ Auto-detection failed: {e}")
+            self.logger.warning(f"Auto-detection failed: {e}")
             self.logger.info("Continuing with randomly initialized weights...")
             return model
     
@@ -655,7 +671,7 @@ class EnhancedTrainingPipeline:
     def train(self, train_loader: DataLoader, val_loader: DataLoader):
         """Complete training loop with all enhancements."""
         
-        self.logger.info("🚀 Starting Enhanced Training Pipeline")
+        self.logger.info("Starting Enhanced Training Pipeline")
         
         # Create model, loss, optimizer
         model = self.create_model()
@@ -720,7 +736,7 @@ class EnhancedTrainingPipeline:
                     'val/uncertainty_quality': val_metrics.get('uncertainty_quality', 0.0)
                 })
         
-        self.logger.info("✅ Training completed successfully!")
+        self.logger.info("Training completed successfully!")
         
         # Save final training history
         with open(self.output_dir / 'training_history.json', 'w') as f:
@@ -838,6 +854,6 @@ if __name__ == "__main__":
     if train_loader and val_loader:
         # Start training
         model = pipeline.train(train_loader, val_loader)
-        print("✅ Enhanced training completed!")
+        print("Enhanced training completed!")
     else:
-        print("❌ No datasets available for training") 
+        print("No datasets available for training") 

@@ -163,19 +163,19 @@ class SemanticBranch(nn.Module):
         )
         
         self.stage4 = nn.Sequential(
-            GatherAndExpansionLayer(32, 64, stride=2),
-            GatherAndExpansionLayer(64, 64),
+            GatherAndExpansionLayer(32, 128, stride=2),
+            GatherAndExpansionLayer(128, 128),
         )
         
         self.stage5 = nn.Sequential(
-            GatherAndExpansionLayer(64, 128, stride=2),
+            GatherAndExpansionLayer(128, 128, stride=2),
             GatherAndExpansionLayer(128, 128),
             GatherAndExpansionLayer(128, 128),
             GatherAndExpansionLayer(128, 128),
         )
         
-        # Context Embedding - Match MMSeg output channels
-        self.stage4_CEBlock = ContextEmbeddingBlock(64, 64)
+        # Context Embedding - Match MMSeg architecture
+        self.stage4_CEBlock = ContextEmbeddingBlock(128, 64)
         self.stage5_CEBlock = ContextEmbeddingBlock(128, 128)
     
     def forward(self, x):
@@ -283,7 +283,11 @@ class SegmentationHead(nn.Module):
     
     def __init__(self, in_channels, num_classes, dropout_ratio=0.1):
         super().__init__()
-        mid_channels = in_channels
+        # Match MMSeg: reduce channels to a smaller intermediate size
+        if in_channels >= 256:
+            mid_channels = 128  # For large inputs (decode head)
+        else:
+            mid_channels = in_channels // 2 if in_channels > 32 else in_channels
         
         self.convs = nn.ModuleList([
             ConvBNReLU(in_channels, mid_channels, 3, 1, 1)
