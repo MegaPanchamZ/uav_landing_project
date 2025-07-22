@@ -38,13 +38,13 @@ class ConvBNReLU(nn.Module):
 class DetailBranch(nn.Module):
     """Detail branch for capturing fine-grained details."""
     
-    def __init__(self):
+    def __init__(self, in_channels=3):
         super().__init__()
         
         # Stage 1
         self.detail_branch = nn.ModuleList([
             nn.ModuleList([
-                ConvBNReLU(3, 64, 3, 2, 1),
+                ConvBNReLU(in_channels, 64, 3, 2, 1),
                 ConvBNReLU(64, 64, 3, 1, 1),
             ]),
             nn.ModuleList([
@@ -150,11 +150,11 @@ class ContextEmbeddingBlock(nn.Module):
 class SemanticBranch(nn.Module):
     """Semantic branch for capturing contextual information."""
     
-    def __init__(self):
+    def __init__(self, in_channels=3):
         super().__init__()
         
         # Stem
-        self.stem = StemBlock(3, 16)
+        self.stem = StemBlock(in_channels, 16)
         
         # Stages - Fixed channel dimensions to match MMSeg pretrained
         self.stage3 = nn.Sequential(
@@ -204,10 +204,10 @@ class SemanticBranch(nn.Module):
 class BiSeNetV2Backbone(nn.Module):
     """BiSeNetV2 backbone with detail and semantic branches."""
     
-    def __init__(self):
+    def __init__(self, in_channels=3):
         super().__init__()
-        self.detail = DetailBranch()
-        self.semantic = SemanticBranch()
+        self.detail = DetailBranch(in_channels=in_channels)
+        self.semantic = SemanticBranch(in_channels=in_channels)
     
     def forward(self, x):
         # Detail branch (1/8 resolution)
@@ -332,7 +332,7 @@ class MMSegBiSeNetV2(nn.Module):
         self.uncertainty_estimation = uncertainty_estimation
         
         # Backbone
-        self.backbone = BiSeNetV2Backbone()
+        self.backbone = BiSeNetV2Backbone(in_channels=in_channels)
         
         # Bilateral Guided Aggregation - outputs 1024 channels to match MMSeg
         self.bga = BilateralGuidedAggregationLayer(
@@ -518,6 +518,7 @@ class MMSegBiSeNetV2(nn.Module):
 def create_mmseg_bisenetv2(
     num_classes: int = 4,
     uncertainty_estimation: bool = True,
+    in_channels: int = 3,
     pretrained_path: Optional[str] = None
 ) -> MMSegBiSeNetV2:
     """
@@ -533,6 +534,7 @@ def create_mmseg_bisenetv2(
     """
     model = MMSegBiSeNetV2(
         num_classes=num_classes,
+        in_channels=in_channels,
         uncertainty_estimation=uncertainty_estimation
     )
     

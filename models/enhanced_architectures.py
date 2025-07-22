@@ -430,6 +430,7 @@ def create_enhanced_model(
     num_classes: int = 4,
     input_resolution: Tuple[int, int] = (512, 512),
     uncertainty_estimation: bool = True,
+    in_channels: int = 3,
     **kwargs
 ) -> nn.Module:
     """
@@ -464,6 +465,7 @@ def create_enhanced_model(
         model = create_mmseg_bisenetv2(
             num_classes=num_classes,
             uncertainty_estimation=uncertainty_estimation,
+            in_channels=in_channels,
             pretrained_path=kwargs.get('pretrained_path')
         )
         return model  # Already has size info printed
