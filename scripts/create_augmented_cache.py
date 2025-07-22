@@ -48,10 +48,14 @@ def main():
                         help='Augmentation factor for DroneDeploy dataset')
     parser.add_argument('--udd-factor', type=int, default=15,
                         help='Augmentation factor for UDD dataset')
+    parser.add_argument('--fast-mode', action='store_true',
+                        help='Use reduced factors for faster cache generation (10x, 8x, 6x)')
+    parser.add_argument('--ultra-fast-mode', action='store_true',
+                        help='Use minimal factors for ultra-fast cache generation (5x, 4x, 3x)')
     
     # Processing
-    parser.add_argument('--num-workers', type=int, default=4,
-                        help='Number of worker threads')
+    parser.add_argument('--num-workers', type=int, default=16,
+                        help='Number of worker threads (default: 16 for high-core systems)')
     
     args = parser.parse_args()
     
@@ -98,12 +102,27 @@ def main():
     print(f"   - UDD: {len(train_udd)} images (3-channel)")
     print(f"   - Semantic Drone: {len(train_semantic)} images (3-channel)")
     
-    # Create augmentation factors
-    augmentation_factors = {
-        'semantic_drone': args.semantic_factor,
-        'drone_deploy': args.drone_deploy_factor,
-        'udd': args.udd_factor
-    }
+    # Create augmentation factors with speed mode overrides
+    if args.ultra_fast_mode:
+        augmentation_factors = {
+            'semantic_drone': 5,
+            'drone_deploy': 4,
+            'udd': 3
+        }
+        print("🚀 ULTRA-FAST MODE: Using minimal augmentation factors")
+    elif args.fast_mode:
+        augmentation_factors = {
+            'semantic_drone': 10,
+            'drone_deploy': 8,
+            'udd': 6
+        }
+        print("⚡ FAST MODE: Using reduced augmentation factors")
+    else:
+        augmentation_factors = {
+            'semantic_drone': args.semantic_factor,
+            'drone_deploy': args.drone_deploy_factor,
+            'udd': args.udd_factor
+        }
     
     # Expected patch counts
     expected_patches = {

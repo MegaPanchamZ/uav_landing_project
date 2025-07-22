@@ -183,6 +183,7 @@ class SemanticBranch(nn.Module):
         
         # Stem
         x = self.stem(x)
+        outputs['stem'] = x  # Capture stem output for auxiliary_head.0
         
         # Stage 3
         x = self.stage3(x)
@@ -218,6 +219,7 @@ class BiSeNetV2Backbone(nn.Module):
         
         return {
             'detail': detail_out,
+            'semantic_stem': semantic_outs['stem'],      # 1/4 (for auxiliary_head.0)
             'semantic_stage3': semantic_outs['stage3'],  # 1/8
             'semantic_stage4': semantic_outs['stage4'],  # 1/16
             'semantic_stage5': semantic_outs['stage5'],  # 1/32
@@ -283,15 +285,17 @@ class SegmentationHead(nn.Module):
     
     def __init__(self, in_channels, num_classes, dropout_ratio=0.1):
         super().__init__()
-        # Match MMSeg: reduce channels to a smaller intermediate size
-        if in_channels >= 256:
-            mid_channels = 128  # For large inputs (decode head)
+        # For pretrained compatibility, keep specific heads' input channels as-is
+        if in_channels in [64, 256, 1024]:
+            # Auxiliary heads 1, 2 and main decode head - keep full channels for pretrained compatibility
+            mid_channels = in_channels
+            self.convs = nn.ModuleList([])  # No intermediate conv for these heads
         else:
+            # Other auxiliary heads - can reduce channels
             mid_channels = in_channels // 2 if in_channels > 32 else in_channels
-        
-        self.convs = nn.ModuleList([
-            ConvBNReLU(in_channels, mid_channels, 3, 1, 1)
-        ])
+            self.convs = nn.ModuleList([
+                ConvBNReLU(in_channels, mid_channels, 3, 1, 1)
+            ])
         
         if dropout_ratio > 0:
             self.dropout = nn.Dropout2d(dropout_ratio)
@@ -301,6 +305,7 @@ class SegmentationHead(nn.Module):
         self.conv_seg = nn.Conv2d(mid_channels, num_classes, 1, 1, 0)
     
     def forward(self, x):
+        # Apply intermediate convolutions if they exist
         for conv in self.convs:
             x = conv(x)
         
@@ -336,8 +341,8 @@ class MMSegBiSeNetV2(nn.Module):
         
         # Bilateral Guided Aggregation - outputs 1024 channels to match MMSeg
         self.bga = BilateralGuidedAggregationLayer(
-            detail_channels=128,
-            semantic_channels=64,  # stage4 output 
+            detail_channels=128,   # detail branch output
+            semantic_channels=128, # stage4 output (fixed to match pretrained)
             out_channels=1024      # Match MMSeg decode_head input
         )
         
@@ -348,15 +353,15 @@ class MMSegBiSeNetV2(nn.Module):
             dropout_ratio=dropout_ratio
         )
         
-        # Feature transformation layers to match MMSeg auxiliary head inputs
-        self.stage3_transform = nn.Conv2d(32, 16, 1, 1, 0)    # 32→16 for auxiliary_head.0
-        self.stage5_transform = nn.Conv2d(128, 256, 1, 1, 0)  # 128→256 for auxiliary_head.2
+        # Feature transformation layers to match exact pretrained auxiliary head inputs
+        self.stage3_to_64 = nn.Conv2d(32, 64, 1, 1, 0)     # 32→64 for auxiliary_head.1
+        self.stage4_to_256 = nn.Conv2d(128, 256, 1, 1, 0)   # 128→256 for auxiliary_head.2
         
-        # Auxiliary heads - Match exact channel dimensions from MMSeg inspection
+        # Auxiliary heads - Match EXACT channel dimensions from pretrained model
         self.auxiliary_head = nn.ModuleList([
-            SegmentationHead(16, num_classes, dropout_ratio),   # stage3→16: auxiliary_head.0.conv_seg
-            SegmentationHead(64, num_classes, dropout_ratio),   # stage4→64: auxiliary_head.1.conv_seg  
-            SegmentationHead(256, num_classes, dropout_ratio),  # stage5→256: auxiliary_head.2.conv_seg
+            SegmentationHead(16, num_classes, dropout_ratio),   # stage1→16: auxiliary_head.0.conv_seg
+            SegmentationHead(64, num_classes, dropout_ratio),   # stage2→64: auxiliary_head.1.conv_seg  
+            SegmentationHead(256, num_classes, dropout_ratio),  # stage3→256: auxiliary_head.2.conv_seg
             SegmentationHead(1024, num_classes, dropout_ratio), # aggregated→1024: auxiliary_head.3.conv_seg
         ])
         
@@ -388,10 +393,11 @@ class MMSegBiSeNetV2(nn.Module):
         # Backbone
         backbone_outs = self.backbone(x)
         
-        detail_feat = backbone_outs['detail']          # 1/8
-        semantic_stage3 = backbone_outs['semantic_stage3']  # 1/8
-        semantic_stage4 = backbone_outs['semantic_stage4']  # 1/16
-        semantic_stage5 = backbone_outs['semantic_stage5']  # 1/32
+        detail_feat = backbone_outs['detail']               # 1/8
+        semantic_stem = backbone_outs['semantic_stem']      # 1/4 (16 channels)
+        semantic_stage3 = backbone_outs['semantic_stage3']  # 1/8 (32 channels)
+        semantic_stage4 = backbone_outs['semantic_stage4']  # 1/16 (128 channels)
+        semantic_stage5 = backbone_outs['semantic_stage5']  # 1/32 (128 channels)
         
         # Bilateral Guided Aggregation
         # Use semantic_stage4 as the main semantic feature
@@ -407,13 +413,13 @@ class MMSegBiSeNetV2(nn.Module):
         if self.training:
             aux_outs = []
             
-            # Transform semantic features to match MMSeg auxiliary head inputs
-            stage3_16 = self.stage3_transform(semantic_stage3)   # 32→16 for auxiliary_head.0
-            stage4_64 = semantic_stage4                          # 64 channels - direct use for auxiliary_head.1
-            stage5_256 = self.stage5_transform(semantic_stage5)  # 128→256 for auxiliary_head.2
+            # Transform semantic features to match exact pretrained auxiliary head inputs
+            stem_16 = semantic_stem                              # 16 channels - direct use for auxiliary_head.0
+            stage3_64 = self.stage3_to_64(semantic_stage3)       # 32→64 channels for auxiliary_head.1
+            stage4_256 = self.stage4_to_256(semantic_stage4)     # 128→256 channels for auxiliary_head.2
             aggregated_1024 = aggregated                         # 1024 channels - direct use for auxiliary_head.3
             
-            features = [stage3_16, stage4_64, stage5_256, aggregated_1024]
+            features = [stem_16, stage3_64, stage4_256, aggregated_1024]
             
             for i, (aux_head, feat) in enumerate(zip(self.auxiliary_head, features)):
                 aux_out = aux_head(feat)

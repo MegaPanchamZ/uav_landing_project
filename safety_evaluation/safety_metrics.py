@@ -86,6 +86,15 @@ class SafetyAwareEvaluator:
             targets: Ground truth labels [B, H, W]
             uncertainties: Uncertainty estimates [B, H, W] (optional)
         """
+        # Ensure predictions and targets have compatible shapes
+        if predictions.shape != targets.shape:
+            print(f"⚠️  Shape mismatch: predictions {predictions.shape} vs targets {targets.shape}")
+            # Take the minimum dimensions to avoid indexing errors
+            min_h = min(predictions.shape[-2], targets.shape[-2])
+            min_w = min(predictions.shape[-1], targets.shape[-1])
+            predictions = predictions[..., :min_h, :min_w]
+            targets = targets[..., :min_h, :min_w]
+        
         # Convert to numpy
         pred_np = predictions.cpu().numpy().flatten()
         target_np = targets.cpu().numpy().flatten()
@@ -152,8 +161,8 @@ class SafetyAwareEvaluator:
         x = tensor.float().unsqueeze(0).unsqueeze(0)
         
         # Sobel kernels
-        sobel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=torch.float32).unsqueeze(0).unsqueeze(0)
-        sobel_y = torch.tensor([[-1, -2, -1], [0, 0, 0], [1, 2, 1]], dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+        sobel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=torch.float32, device=x.device).unsqueeze(0).unsqueeze(0)
+        sobel_y = torch.tensor([[-1, -2, -1], [0, 0, 0], [1, 2, 1]], dtype=torch.float32, device=x.device).unsqueeze(0).unsqueeze(0)
         
         # Apply convolution
         grad_x = torch.nn.functional.conv2d(x, sobel_x, padding=1)

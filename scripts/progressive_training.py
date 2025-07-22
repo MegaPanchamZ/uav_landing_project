@@ -81,7 +81,7 @@ class ProgressiveTrainer:
                 base_dataset=train_dataset,
                 cache_dir=self.config.get('cache_dir', 'cache/augmented_datasets'),
                 dataset_name='drone_deploy',
-                patch_scales=[(512, 512), (768, 768)],
+                patch_scales=[(512, 512)],  # Single scale to avoid tensor size mismatch
                 augmentation_factor=self.config.get('augmentation_factor', 20),
                 min_object_ratio=0.1,
                 use_overlapping=True,
@@ -148,7 +148,7 @@ class ProgressiveTrainer:
                 base_dataset=train_dataset,
                 cache_dir=self.config.get('cache_dir', 'cache/augmented_datasets'),
                 dataset_name='udd',
-                patch_scales=[(512, 512)],
+                patch_scales=[(512, 512)],  # Single scale to avoid tensor size mismatch
                 augmentation_factor=self.config.get('augmentation_factor', 15),
                 min_object_ratio=0.15,
                 use_overlapping=True,
@@ -217,7 +217,7 @@ class ProgressiveTrainer:
                 base_dataset=train_dataset,
                 cache_dir=self.config.get('cache_dir', 'cache/augmented_datasets'),
                 dataset_name='semantic_drone',
-                patch_scales=[(512, 512), (768, 768), (1024, 1024)],  # All scales
+                patch_scales=[(512, 512)],  # Single scale to avoid tensor size mismatch
                 augmentation_factor=self.config.get('augmentation_factor', 25),  # Maximum patches
                 min_object_ratio=0.05,  # More permissive for diversity
                 use_overlapping=True,

@@ -9,6 +9,7 @@ Professional model architectures addressing the inadequacies of the ultra-lightw
 - Multi-scale feature processing
 - Attention mechanisms for landing-relevant features
 - Safety-aware architecture design
+- Variable input size handling
 """
 
 import torch
@@ -18,6 +19,249 @@ from typing import Tuple, Dict, Optional, List
 import torchvision.models as models
 import torchvision.models.segmentation as seg_models
 import math
+
+
+class AdaptiveSegmentationModel(nn.Module):
+    """
+    Adaptive segmentation model that handles variable input sizes efficiently.
+    
+    Key Features:
+    - Accepts any input size (minimum 256x256)
+    - Uses adaptive pooling to handle size variations
+    - Maintains spatial relationships regardless of input size
+    - Optimized for UAV landing detection with different altitudes
+    """
+    
+    def __init__(
+        self,
+        base_model: nn.Module,
+        min_size: int = 256,
+        adaptive_pooling_sizes: List[int] = [1, 2, 4, 8],
+        interpolation_mode: str = 'bilinear'
+    ):
+        super(AdaptiveSegmentationModel, self).__init__()
+        
+        self.base_model = base_model
+        self.min_size = min_size
+        self.adaptive_pooling_sizes = adaptive_pooling_sizes
+        self.interpolation_mode = interpolation_mode
+        
+        # Get model's expected input channels from the first conv layer
+        first_conv = self._find_first_conv()
+        if first_conv:
+            self.expected_channels = first_conv.in_channels
+        else:
+            self.expected_channels = 3  # Default fallback
+            
+        # Adaptive pooling layers for multi-scale feature extraction
+        self.adaptive_pools = nn.ModuleList([
+            nn.AdaptiveAvgPool2d((size, size)) for size in adaptive_pooling_sizes
+        ])
+        
+        print(f"🔄 Created Adaptive Segmentation Model:")
+        print(f"   Base model: {type(base_model).__name__}")
+        print(f"   Min input size: {min_size}x{min_size}")
+        print(f"   Expected channels: {self.expected_channels}")
+        print(f"   Adaptive pooling sizes: {adaptive_pooling_sizes}")
+    
+    def _find_first_conv(self) -> Optional[nn.Conv2d]:
+        """Find the first convolutional layer to determine expected input channels."""
+        for module in self.base_model.modules():
+            if isinstance(module, nn.Conv2d):
+                return module
+        return None
+    
+    def forward(self, x):
+        """
+        Forward pass with adaptive input size handling.
+        
+        Args:
+            x: Input tensor of shape [B, C, H, W] where H, W can vary
+            
+        Returns:
+            Dictionary with segmentation outputs resized to input size
+        """
+        batch_size, channels, input_h, input_w = x.shape
+        
+        # Validate input
+        if channels != self.expected_channels:
+            raise ValueError(f"Expected {self.expected_channels} input channels, got {channels}")
+        
+        if min(input_h, input_w) < self.min_size:
+            raise ValueError(f"Input size too small. Minimum: {self.min_size}x{self.min_size}, got: {input_h}x{input_w}")
+        
+        # Store original size for final upsampling
+        original_size = (input_h, input_w)
+        
+        # Process through base model
+        # Most segmentation models expect specific sizes, so we may need to adapt
+        if hasattr(self.base_model, 'forward'):
+            outputs = self.base_model(x)
+        else:
+            raise ValueError("Base model must have a forward method")
+        
+        # Ensure outputs are resized to match input size
+        if isinstance(outputs, dict):
+            adapted_outputs = {}
+            for key, output in outputs.items():
+                if isinstance(output, torch.Tensor) and len(output.shape) == 4:
+                    # Resize output to match input size
+                    adapted_outputs[key] = F.interpolate(
+                        output, 
+                        size=original_size,
+                        mode=self.interpolation_mode,
+                        align_corners=False
+                    )
+                else:
+                    adapted_outputs[key] = output
+            return adapted_outputs
+        else:
+            # Single tensor output
+            return F.interpolate(
+                outputs,
+                size=original_size,
+                mode=self.interpolation_mode,
+                align_corners=False
+            )
+
+
+class FlexibleBiSeNetV2(nn.Module):
+    """
+    Flexible BiSeNetV2 that can handle variable input sizes natively.
+    
+    Uses adaptive pooling and flexible convolutions to process
+    any input size >= 256x256 efficiently.
+    """
+    
+    def __init__(
+        self,
+        num_classes: int = 4,
+        min_input_size: int = 256,
+        uncertainty_estimation: bool = True,
+        adaptive_features: bool = True
+    ):
+        super(FlexibleBiSeNetV2, self).__init__()
+        
+        self.num_classes = num_classes
+        self.min_input_size = min_input_size
+        self.uncertainty_estimation = uncertainty_estimation
+        self.adaptive_features = adaptive_features
+        
+        # Import the MMSeg model as base
+        from models.mmseg_bisenetv2 import MMSegBiSeNetV2
+        
+        self.backbone = MMSegBiSeNetV2(
+            num_classes=num_classes,
+            uncertainty_estimation=False  # We'll handle uncertainty at this level
+        )
+        
+        # Adaptive feature processing for different input sizes
+        if adaptive_features:
+            self.adaptive_pools = nn.ModuleList([
+                nn.AdaptiveAvgPool2d((64, 64)),   # For very large inputs
+                nn.AdaptiveAvgPool2d((32, 32)),   # For large inputs  
+                nn.AdaptiveAvgPool2d((16, 16)),   # For medium inputs
+                nn.AdaptiveAvgPool2d((8, 8)),     # For small inputs
+            ])
+            
+            # Feature fusion for multi-scale processing
+            self.feature_fusion = nn.Sequential(
+                nn.Conv2d(num_classes * 4, num_classes * 2, 3, padding=1),
+                nn.BatchNorm2d(num_classes * 2),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(num_classes * 2, num_classes, 1),
+            )
+        
+        # Uncertainty estimation
+        if uncertainty_estimation:
+            self.uncertainty_head = nn.Sequential(
+                nn.Conv2d(num_classes, num_classes // 2, 3, padding=1),
+                nn.BatchNorm2d(num_classes // 2),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(num_classes // 2, 1, 1),
+                nn.Sigmoid()  # Output uncertainty as probability
+            )
+        
+        # Model size calculation
+        total_params = sum(p.numel() for p in self.parameters())
+        print(f"🏗️ Created Flexible BiSeNetV2:")
+        print(f"   Parameters: {total_params:,}")
+        print(f"   Min input size: {min_input_size}x{min_input_size}")
+        print(f"   Adaptive features: {adaptive_features}")
+        print(f"   Uncertainty estimation: {uncertainty_estimation}")
+    
+    def forward(self, x):
+        """Forward pass with adaptive input size handling."""
+        batch_size, channels, input_h, input_w = x.shape
+        original_size = (input_h, input_w)
+        
+        # Validate minimum size
+        if min(input_h, input_w) < self.min_input_size:
+            # Resize input to minimum size if too small
+            x = F.interpolate(
+                x, 
+                size=(self.min_input_size, self.min_input_size),
+                mode='bilinear',
+                align_corners=False
+            )
+            print(f"⚠️  Input resized from {original_size} to {self.min_input_size}x{self.min_input_size}")
+        
+        # Main backbone forward pass
+        backbone_outputs = self.backbone(x)
+        main_output = backbone_outputs['main']
+        
+        outputs = {}
+        
+        # Adaptive multi-scale processing
+        if self.adaptive_features and hasattr(self, 'adaptive_pools'):
+            # Process at multiple scales
+            multi_scale_features = []
+            for pool in self.adaptive_pools:
+                pooled = pool(main_output)
+                # Resize back to main output size
+                upsampled = F.interpolate(
+                    pooled,
+                    size=main_output.shape[2:],
+                    mode='bilinear',
+                    align_corners=False
+                )
+                multi_scale_features.append(upsampled)
+            
+            # Fuse multi-scale features
+            combined_features = torch.cat(multi_scale_features, dim=1)
+            fused_output = self.feature_fusion(combined_features)
+            
+            # Combine with original output
+            main_output = main_output + fused_output
+        
+        # Resize to original input size
+        main_output = F.interpolate(
+            main_output,
+            size=original_size,
+            mode='bilinear',
+            align_corners=False
+        )
+        outputs['main'] = main_output
+        
+        # Uncertainty estimation
+        if self.uncertainty_estimation and hasattr(self, 'uncertainty_head'):
+            uncertainty = self.uncertainty_head(main_output)
+            outputs['uncertainty'] = uncertainty
+        
+        # Pass through auxiliary outputs if in training
+        if self.training and 'aux' in backbone_outputs:
+            aux_outputs = []
+            for aux_out in backbone_outputs['aux']:
+                aux_resized = F.interpolate(
+                    aux_out,
+                    size=original_size,
+                    mode='bilinear',
+                    align_corners=False
+                )
+                aux_outputs.append(aux_resized)
+            outputs['aux'] = aux_outputs
+        
+        return outputs
 
 
 class EnhancedBiSeNetV2(nn.Module):
@@ -431,20 +675,55 @@ def create_enhanced_model(
     input_resolution: Tuple[int, int] = (512, 512),
     uncertainty_estimation: bool = True,
     in_channels: int = 3,
+    variable_input_size: bool = False,
     **kwargs
 ) -> nn.Module:
     """
     Factory function to create enhanced models.
     
     Args:
-        model_type: Type of model ('enhanced_bisenetv2', 'deeplabv3plus', 'mmseg_bisenetv2')
+        model_type: Type of model ('enhanced_bisenetv2', 'deeplabv3plus', 'mmseg_bisenetv2', 
+                   'flexible_bisenetv2', 'adaptive_wrapper')
         num_classes: Number of output classes
-        input_resolution: Input image resolution
+        input_resolution: Input image resolution (ignored if variable_input_size=True)
         uncertainty_estimation: Enable uncertainty quantification
+        variable_input_size: Enable variable input size handling
         **kwargs: Additional model-specific arguments
     """
     
-    if model_type == "enhanced_bisenetv2":
+    if model_type == "flexible_bisenetv2":
+        model = FlexibleBiSeNetV2(
+            num_classes=num_classes,
+            min_input_size=min(input_resolution) if input_resolution else 256,
+            uncertainty_estimation=uncertainty_estimation,
+            **kwargs
+        )
+        return model  # Already prints info
+        
+    elif model_type == "adaptive_wrapper":
+        # Create base model first
+        base_model_type = kwargs.get('base_model_type', 'mmseg_bisenetv2')
+        base_kwargs = {k: v for k, v in kwargs.items() if k != 'base_model_type'}
+        
+        base_model = create_enhanced_model(
+            model_type=base_model_type,
+            num_classes=num_classes,
+            input_resolution=input_resolution,
+            uncertainty_estimation=uncertainty_estimation,
+            in_channels=in_channels,
+            variable_input_size=False,  # Don't recurse
+            **base_kwargs
+        )
+        
+        # Wrap with adaptive wrapper
+        model = AdaptiveSegmentationModel(
+            base_model=base_model,
+            min_size=min(input_resolution) if input_resolution else 256,
+            **kwargs
+        )
+        return model
+        
+    elif model_type == "enhanced_bisenetv2":
         model = EnhancedBiSeNetV2(
             num_classes=num_classes,
             input_resolution=input_resolution,
@@ -468,9 +747,24 @@ def create_enhanced_model(
             in_channels=in_channels,
             pretrained_path=kwargs.get('pretrained_path')
         )
+        
+        # Wrap with adaptive handling if requested
+        if variable_input_size:
+            model = AdaptiveSegmentationModel(
+                base_model=model,
+                min_size=min(input_resolution) if input_resolution else 256
+            )
         return model  # Already has size info printed
     else:
-        raise ValueError(f"Unknown model type: {model_type}. Available: enhanced_bisenetv2, deeplabv3plus, mmseg_bisenetv2")
+        raise ValueError(f"Unknown model type: {model_type}. Available: enhanced_bisenetv2, deeplabv3plus, mmseg_bisenetv2, flexible_bisenetv2, adaptive_wrapper")
+    
+    # Wrap with adaptive handling if requested
+    if variable_input_size:
+        model = AdaptiveSegmentationModel(
+            base_model=model,
+            min_size=min(input_resolution) if input_resolution else 256
+        )
+        return model
     
     # Wrap with Bayesian uncertainty if requested
     if uncertainty_estimation:

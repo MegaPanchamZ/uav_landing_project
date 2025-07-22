@@ -106,12 +106,12 @@ class SafetyFocalLoss(nn.Module):
         # Apply focal term
         focal_weight = (1 - pt) ** self.gamma
         
-        # Apply alpha weighting
-        alpha_t = self.safety_weights[targets]
+        # Apply alpha weighting (ensure same device)
+        alpha_t = self.safety_weights.to(targets.device)[targets]
         
-        # Apply safety penalty
+        # Apply safety penalty (ensure same device)
         predicted_classes = torch.argmax(inputs, dim=1)
-        safety_penalty = self.safety_penalty[targets, predicted_classes]
+        safety_penalty = self.safety_penalty.to(targets.device)[targets, predicted_classes]
         
         # Combine all terms
         focal_loss = alpha_t * focal_weight * safety_penalty * ce_loss
@@ -205,10 +205,11 @@ class BoundaryLoss(nn.Module):
     critical for precise landing area delineation.
     """
     
-    def __init__(self, theta0: float = 3.0, theta: float = 5.0):
+    def __init__(self, theta0: float = 3.0, theta: float = 5.0, num_classes: int = 4):
         super(BoundaryLoss, self).__init__()
         self.theta0 = theta0
         self.theta = theta
+        self.num_classes = num_classes
     
     def forward(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """
@@ -255,7 +256,7 @@ class BoundaryLoss(nn.Module):
             Distance transforms [B, C, H, W]
         """
         batch_size, height, width = targets.shape
-        num_classes = targets.max().item() + 1
+        num_classes = self.num_classes
         
         # Convert to one-hot
         targets_one_hot = F.one_hot(targets.long(), num_classes=num_classes)
@@ -365,7 +366,7 @@ class CombinedSafetyLoss(nn.Module):
         )
         
         self.dice_loss = DiceLoss()
-        self.boundary_loss = BoundaryLoss()
+        self.boundary_loss = BoundaryLoss(num_classes=num_classes)
         self.uncertainty_loss = UncertaintyLoss()
         
         # Loss weights
@@ -419,8 +420,16 @@ class CombinedSafetyLoss(nn.Module):
         # Auxiliary loss (if available)
         aux_loss_value = 0.0
         if 'aux' in outputs:
-            aux_pred = outputs['aux']
-            aux_loss_value = 0.4 * self.focal_loss(aux_pred, targets)
+            aux_preds = outputs['aux']
+            if isinstance(aux_preds, list):
+                # Multiple auxiliary outputs - compute loss for each
+                aux_loss_total = 0.0
+                for aux_pred in aux_preds:
+                    aux_loss_total += self.focal_loss(aux_pred, targets)
+                aux_loss_value = 0.4 * aux_loss_total / len(aux_preds)  # Average auxiliary loss
+            else:
+                # Single auxiliary output
+                aux_loss_value = 0.4 * self.focal_loss(aux_preds, targets)
             loss_dict['aux_loss'] = aux_loss_value
         
         # Uncertainty loss (if available)

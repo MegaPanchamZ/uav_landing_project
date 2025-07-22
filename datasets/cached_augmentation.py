@@ -46,7 +46,8 @@ class CachedAugmentedDataset(Dataset):
         overlap_ratio: float = 0.25,
         uav_augmentations: bool = True,
         force_rebuild: bool = False,
-        num_workers: int = 4
+        num_workers: int = 4,
+        fast_mode: bool = False
     ):
         """
         Args:
@@ -72,6 +73,7 @@ class CachedAugmentedDataset(Dataset):
         self.overlap_ratio = overlap_ratio
         self.uav_augmentations = uav_augmentations
         self.num_workers = num_workers
+        self.fast_mode = fast_mode
         
         # Create cache directory
         self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -165,24 +167,29 @@ class CachedAugmentedDataset(Dataset):
                     finally:
                         pbar.update(1)
         
-        # Save augmented patches to disk with progress bar
+        # Save augmented patches to disk with progress bar (batch processing for speed)
         print("💾 Saving augmented patches to disk...")
+        
+        # Process patches in larger batches for better efficiency
+        batch_size = min(200, max(50, len(self.patch_index) // (self.num_workers * 2)))
         
         with ThreadPoolExecutor(max_workers=self.num_workers) as executor:
             futures = []
             
-            # Submit patch saving tasks
-            for patch_idx, patch_info in enumerate(self.patch_index):
-                future = executor.submit(self._save_patch, patch_idx, patch_info)
+            # Submit batch saving tasks
+            for i in range(0, len(self.patch_index), batch_size):
+                batch = self.patch_index[i:i + batch_size]
+                future = executor.submit(self._save_patch_batch, i, batch)
                 futures.append(future)
             
             # Wait for completion with progress bar
-            with tqdm(total=len(futures), desc="Saving patches") as pbar:
+            with tqdm(total=len(futures), desc="Saving patch batches") as pbar:
                 for future in as_completed(futures):
                     try:
-                        future.result()
+                        batch_size_actual = future.result()
+                        pbar.set_postfix({'patches_saved': f'{(pbar.n + 1) * batch_size}'})
                     except Exception as e:
-                        print(f"❌ Error saving patch: {e}")
+                        print(f"❌ Error saving batch: {e}")
                     finally:
                         pbar.update(1)
         
@@ -318,8 +325,38 @@ class CachedAugmentedDataset(Dataset):
         
         return patches
     
+    def _save_patch_batch(self, start_idx: int, patch_batch: List[Dict]) -> int:
+        """Save a batch of patches to disk for better efficiency."""
+        saved_count = 0
+        
+        for i, patch_info in enumerate(patch_batch):
+            patch_idx = start_idx + i
+            try:
+                # Generate the patch
+                patch_image, patch_mask = self._generate_patch(patch_info)
+                
+                # Save image and mask
+                image_path = self.patches_dir / f"patch_{patch_idx:06d}_image.npz"
+                mask_path = self.patches_dir / f"patch_{patch_idx:06d}_mask.npy"
+                
+                # Save as uncompressed numpy arrays for speed (compression is slow)
+                np.save(image_path.with_suffix('.npy'), patch_image)
+                np.save(mask_path, patch_mask)
+                
+                # Update patch info with file paths
+                patch_info['image_path'] = str(image_path.with_suffix('.npy'))
+                patch_info['mask_path'] = str(mask_path)
+                patch_info['patch_idx'] = patch_idx
+                
+                saved_count += 1
+                
+            except Exception as e:
+                print(f"❌ Error saving patch {patch_idx}: {e}")
+        
+        return saved_count
+
     def _save_patch(self, patch_idx: int, patch_info: Dict):
-        """Save a single patch to disk."""
+        """Save a single patch to disk (legacy method)."""
         try:
             # Generate the patch
             patch_image, patch_mask = self._generate_patch(patch_info)
@@ -328,12 +365,12 @@ class CachedAugmentedDataset(Dataset):
             image_path = self.patches_dir / f"patch_{patch_idx:06d}_image.npz"
             mask_path = self.patches_dir / f"patch_{patch_idx:06d}_mask.npy"
             
-            # Save as compressed numpy arrays
-            np.savez_compressed(image_path, image=patch_image)
+            # Save as uncompressed numpy arrays for speed
+            np.save(image_path.with_suffix('.npy'), patch_image)
             np.save(mask_path, patch_mask)
             
             # Update patch info with file paths
-            patch_info['image_path'] = str(image_path)
+            patch_info['image_path'] = str(image_path.with_suffix('.npy'))
             patch_info['mask_path'] = str(mask_path)
             patch_info['patch_idx'] = patch_idx
             
@@ -528,9 +565,8 @@ class CachedAugmentedDataset(Dataset):
         """Load a cached patch."""
         patch_info = self.patch_index[idx]
         
-        # Load image and mask from disk
-        image_data = np.load(patch_info['image_path'])
-        patch_image = image_data['image']
+        # Load image and mask from disk (uncompressed for speed)
+        patch_image = np.load(patch_info['image_path'])
         patch_mask = np.load(patch_info['mask_path'])
         
         # Apply UAV augmentations to loaded patch
