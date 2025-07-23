@@ -260,7 +260,7 @@ def test_fine_tuned_model():
             
             print(f"   ⏱️  Inference time: {inference_time:.1f}ms")
             print(f"   📊 Status: {result.status}")
-            print(f"   🎯 Confidence: {result.confidence:.3f}")
+            print(f"    Confidence: {result.confidence:.3f}")
             print(f"   📈 FPS: {result.fps:.1f}")
             print(f"   🛬 Phase: {detector.landing_phase}")
             
@@ -308,7 +308,7 @@ def test_fine_tuned_model():
             'landing_zones': len(landing_zones)
         })
         
-        print(f"   ✅ Found {len(landing_zones)} potential landing zones")
+        print(f"    Found {len(landing_zones)} potential landing zones")
     
     # Summary report
     print(f"\n{'='*60}")
@@ -316,7 +316,7 @@ def test_fine_tuned_model():
     print(f"{'='*60}")
     
     for summary in results_summary:
-        print(f"\n🎯 {summary['scenario']}:")
+        print(f"\n {summary['scenario']}:")
         print(f"   Landing zones detected: {summary['landing_zones']}")
         
         avg_time = np.mean([r['inference_time'] for r in summary['results']])

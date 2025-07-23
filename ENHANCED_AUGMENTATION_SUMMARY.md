@@ -12,7 +12,7 @@ This enhanced augmentation system leverages the **massive resolution** of our da
 - **UDD Dataset**: 4096×2160 → **8-12x augmentation potential**
 
 ### **Class Distributions (FIXED):**
-✅ **All datasets now have proper 4-class distributions:**
+ **All datasets now have proper 4-class distributions:**
 
 | Dataset | Background | Safe | Caution | Danger | Total Samples |
 |---------|------------|------|---------|--------|---------------|
@@ -20,7 +20,7 @@ This enhanced augmentation system leverages the **massive resolution** of our da
 | **DroneDeploy** | 76.6% | 11.0% | 7.7% | 4.8% | 77 images |
 | **UDD** | 23.5% | 8.9% | 63.8% | 3.8% | 120 images |
 
-## 🎯 **Progressive Training Strategy with Augmentation**
+##  **Progressive Training Strategy with Augmentation**
 
 ### **Stage 1: DroneDeploy (Coarse + Height Maps)**
 - **Input**: RGB + Height (4-channel)
@@ -181,9 +181,9 @@ Total training samples: ~22,500 patches
 ## 🚀 **Innovation Summary**
 
 This system transforms the traditional approach from:
-- ❌ **Small datasets** (597 images) → ✅ **Large-scale training** (22,500+ patches)
-- ❌ **Basic augmentation** → ✅ **UAV-specific realism**
-- ❌ **Single resolution** → ✅ **Multi-scale robustness**
-- ❌ **Generic training** → ✅ **Safety-critical specialization**
+- ❌ **Small datasets** (597 images) →  **Large-scale training** (22,500+ patches)
+- ❌ **Basic augmentation** →  **UAV-specific realism**
+- ❌ **Single resolution** →  **Multi-scale robustness**
+- ❌ **Generic training** →  **Safety-critical specialization**
 
 **Result**: A production-ready UAV landing detection system trained on realistic, diverse, high-quality data at scale. 

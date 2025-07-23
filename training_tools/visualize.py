@@ -91,7 +91,7 @@ def visualize_dataset_samples(data_path, num_samples=6, save_path=None):
     
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
-        print(f"✅ Dataset visualization saved to {save_path}")
+        print(f" Dataset visualization saved to {save_path}")
     else:
         plt.show()
         
@@ -130,7 +130,7 @@ def plot_training_history(history_path, save_path=None):
     
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
-        print(f"✅ Training history plot saved to {save_path}")
+        print(f" Training history plot saved to {save_path}")
     else:
         plt.show()
         
@@ -144,7 +144,7 @@ def visualize_model_predictions(model_path, data_path, num_samples=4, save_path=
     if Path(model_path).exists():
         checkpoint = torch.load(model_path, map_location=device)
         model.load_state_dict(checkpoint['model_state_dict'])
-        print(f"✅ Loaded model from {model_path}")
+        print(f" Loaded model from {model_path}")
     else:
         print(f"❌ Model file not found: {model_path}")
         return
@@ -242,7 +242,7 @@ def visualize_model_predictions(model_path, data_path, num_samples=4, save_path=
     
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
-        print(f"✅ Prediction visualization saved to {save_path}")
+        print(f" Prediction visualization saved to {save_path}")
     else:
         plt.show()
 

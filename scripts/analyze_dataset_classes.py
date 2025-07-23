@@ -65,7 +65,7 @@ def analyze_dataset():
         for class_id, count in zip(unique_values, counts):
             all_classes[class_id] += count
     
-    print(f"\n🎯 Classes found across {sample_count} images:")
+    print(f"\n Classes found across {sample_count} images:")
     print("-" * 60)
     
     total_pixels = sum(all_classes.values())
@@ -93,7 +93,7 @@ def analyze_dataset():
     
     landing_classes = {0: "background", 1: "safe_landing", 2: "caution", 3: "danger"}
     
-    print(f"\n🎯 Our UAV Landing Class Mapping:")
+    print(f"\n Our UAV Landing Class Mapping:")
     print("-" * 60)
     
     for landing_class in range(4):
@@ -124,7 +124,7 @@ def analyze_dataset():
             percentage = (count / total_pixels) * 100
             print(f"    {class_id}: {class_name} - {percentage:.2f}%")
     
-    print(f"\n✅ Analysis complete!")
+    print(f"\n Analysis complete!")
 
 if __name__ == "__main__":
     analyze_dataset() 

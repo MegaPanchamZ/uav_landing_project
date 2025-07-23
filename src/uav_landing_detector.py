@@ -198,7 +198,7 @@ class UAVLandingDetector:
         # Initialize the ONNX model
         self._initialize_model(device)
         
-        print(f"✅ UAVLandingDetector initialized with resolution {input_resolution}")
+        print(f" UAVLandingDetector initialized with resolution {input_resolution}")
         
     def _initialize_model(self, device: str):
         """Initialize the ONNX model for inference."""
@@ -262,7 +262,7 @@ class UAVLandingDetector:
             self.input_name = self.session.get_inputs()[0].name
             self.output_name = self.session.get_outputs()[0].name
             
-            print(f"✅ Model loaded: {Path(self.model_path).name}")
+            print(f" Model loaded: {Path(self.model_path).name}")
             print(f"   Provider: {actual_provider}")
             
         except Exception as e:
@@ -926,7 +926,7 @@ if __name__ == "__main__":
         
         # Print results
         if result.status == "TARGET_ACQUIRED":
-            print(f"🎯 Target at {result.distance:.1f}m, commands: [{result.forward_velocity:.1f}, {result.right_velocity:.1f}, {result.descent_rate:.1f}]")
+            print(f" Target at {result.distance:.1f}m, commands: [{result.forward_velocity:.1f}, {result.right_velocity:.1f}, {result.descent_rate:.1f}]")
             
             # Simulate descent
             if result.descent_rate > 0:
@@ -953,4 +953,4 @@ if __name__ == "__main__":
         cap.release()
     cv2.destroyAllWindows()
     
-    print("✅ Demo completed")
+    print(" Demo completed")

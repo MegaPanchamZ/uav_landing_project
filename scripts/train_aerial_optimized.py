@@ -337,8 +337,8 @@ class AerialTrainer:
             pin_memory=False
         )
         
-        print(f"  ✅ Training samples: {len(train_dataset)}")
-        print(f"  ✅ Validation samples: {len(val_dataset)}")
+        print(f"   Training samples: {len(train_dataset)}")
+        print(f"   Validation samples: {len(val_dataset)}")
         
         # Create model
         model = AerialSegmentationModel(num_classes=3).to(self.device)
@@ -403,7 +403,7 @@ class AerialTrainer:
                 best_miou = current_miou
                 save_path = output_dir / f"aerial_optimized_3class_best.pth"
                 torch.save(model.state_dict(), save_path)
-                print(f"  ✅ New best model saved (mIoU: {best_miou:.4f})")
+                print(f"   New best model saved (mIoU: {best_miou:.4f})")
 
         wandb.finish()
         print(f"\n🚁 Aerial-optimized training complete!")

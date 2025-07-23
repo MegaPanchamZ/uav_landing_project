@@ -15,7 +15,7 @@ if ! command -v uv &> /dev/null; then
     exit 1
 fi
 
-echo "✅ uv found"
+echo " uv found"
 
 # Check Python version
 PYTHON_VERSION=$(python3 --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f1-2)
@@ -43,7 +43,7 @@ uv pip install matplotlib>=3.7.0
 uv pip install Pillow>=10.0.0
 uv pip install scipy>=1.11.0
 
-echo "🎯 Making scripts executable..."
+echo " Making scripts executable..."
 chmod +x *.py
 
 echo "🧪 Running system tests..."
@@ -72,4 +72,4 @@ echo "  'r' - Reset visual odometry"
 echo "  'c' - Camera calibration mode"
 echo "  'q' - Quit"
 echo ""
-echo "✅ System ready for GPS-free UAV landing operations!"
+echo " System ready for GPS-free UAV landing operations!"

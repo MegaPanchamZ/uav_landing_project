@@ -116,9 +116,9 @@ while True:
 ```bash
 📊 TEST SUMMARY
 ============================
-✅ PASS Basic Functionality
-✅ PASS Memory System  
-✅ PASS Performance
+ PASS Basic Functionality
+ PASS Memory System  
+ PASS Performance
 
 Overall: 3/3 tests passed
 ```
@@ -138,7 +138,7 @@ python test_headless.py
 python uav_landing_main.py --test-mode --no-display
 
 # Memory system check
-python -c "from uav_landing.memory import NeuroSymbolicMemory; print('✅ Ready')"
+python -c "from uav_landing.memory import NeuroSymbolicMemory; print(' Ready')"
 ```
 
 ## Installation & Setup
@@ -169,11 +169,11 @@ python test_headless.py
 ## Production Deployment
 
 ### Requirements Met
-- ✅ Neurosymbolic memory for "all grass" scenarios
-- ✅ Clean repository organization
-- ✅ Single production class
-- ✅ Real-time performance
-- ✅ Comprehensive error handling
+-  Neurosymbolic memory for "all grass" scenarios
+-  Clean repository organization
+-  Single production class
+-  Real-time performance
+-  Comprehensive error handling
 
 ### Ready for Integration
 The system provides a drop-in replacement for existing UAV landing detection with enhanced memory capabilities for challenging visual scenarios.

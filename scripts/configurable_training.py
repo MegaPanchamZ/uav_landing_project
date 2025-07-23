@@ -281,7 +281,7 @@ class TrainingConfig:
         
         # Deep merge configurations
         self._deep_update(self.config, user_config)
-        print(f"✅ Configuration loaded from {config_path}")
+        print(f" Configuration loaded from {config_path}")
     
     def save_config(self, config_path: str):
         """Save current configuration to JSON file"""
@@ -444,7 +444,7 @@ class ConfigurableTrainer:
                 print(f"🛑 Early stopping triggered at epoch {epoch+1}")
                 break
         
-        print(f"✅ {stage_name} completed! Best validation loss: {stage_best_loss:.4f}")
+        print(f" {stage_name} completed! Best validation loss: {stage_best_loss:.4f}")
         return self.history
     
     def _train_epoch(self, model: nn.Module, train_loader: DataLoader, 
@@ -761,7 +761,7 @@ def main():
     
     if not TRAINING_AVAILABLE:
         print("⚠️  Training datasets not available - created model architecture only")
-        print(f"✅ Model architecture: {model.param_count:,} parameters")
+        print(f" Model architecture: {model.param_count:,} parameters")
         return
     
     # TODO: Add dataset loading and training loop here

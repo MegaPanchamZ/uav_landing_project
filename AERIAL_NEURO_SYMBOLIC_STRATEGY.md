@@ -1,4 +1,4 @@
-# 🎯 Aerial Neuro-Symbolic UAV Landing Strategy
+#  Aerial Neuro-Symbolic UAV Landing Strategy
 
 ## 🚨 **Problem Analysis: Why Current Approach Fails**
 
@@ -222,7 +222,7 @@ class NeuroSymbolicLandingSystem:
         return landing_recommendations
 ```
 
-## 🎯 **Expected Benefits**
+##  **Expected Benefits**
 
 ### **1. Semantic Richness Preserved**
 - **24 classes** vs 4 crude categories

@@ -97,7 +97,7 @@ def main():
         class_mapping='enhanced_4_class'
     )
     
-    print(f"✅ Base datasets loaded:")
+    print(f" Base datasets loaded:")
     print(f"   - DroneDeploy: {len(train_drone_deploy)} images (4-channel)")
     print(f"   - UDD: {len(train_udd)} images (3-channel)")
     print(f"   - Semantic Drone: {len(train_semantic)} images (3-channel)")

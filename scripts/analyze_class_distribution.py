@@ -84,7 +84,7 @@ def analyze_mapped_classes(data_root):
         for cls, count in zip(unique_classes, counts):
             mapped_counts[cls] += count
     
-    print("\n🎯 Mapped Class Distribution:")
+    print("\n Mapped Class Distribution:")
     class_names = {0: "Background", 1: "Safe Landing", 2: "Caution", 3: "Danger"}
     total_pixels = sum(mapped_counts.values())
     
@@ -158,7 +158,7 @@ def analyze_class_imbalance_severity(mapped_counts):
     elif imbalance_ratio > 10:
         print("   ⚠️  HIGH class imbalance detected!")
     else:
-        print("   ✅ Moderate class imbalance.")
+        print("    Moderate class imbalance.")
     
     # Recommend class weights
     print("\n🔧 Recommended Class Weights:")
@@ -211,7 +211,7 @@ def main():
         unmapped_percentage = (unmapped_pixels / total_pixels) * 100
         print(f"   📊 Unmapped pixels: {unmapped_pixels:,} ({unmapped_percentage:.2f}%)")
     else:
-        print("   ✅ All classes are mapped.")
+        print("    All classes are mapped.")
     
     # Summary
     print("\n📋 Analysis Summary:")
@@ -229,7 +229,7 @@ def main():
         elif percentage < 5:
             print(f"   ⚠️  Class {cls}: Rare ({percentage:.1f}%)")
         else:
-            print(f"   ✅ Class {cls}: {percentage:.1f}%")
+            print(f"    Class {cls}: {percentage:.1f}%")
 
 if __name__ == "__main__":
     main() 

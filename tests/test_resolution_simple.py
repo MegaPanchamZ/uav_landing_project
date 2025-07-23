@@ -41,7 +41,7 @@ def test_resolution_parameter():
             expected_size = (width, height)
             
             if actual_size == expected_size:
-                print(f"   ✅ Resolution configured correctly: {actual_size}")
+                print(f"    Resolution configured correctly: {actual_size}")
                 print(f"   📐 Camera center adjusted to: ({system.detector.cx}, {system.detector.cy})")
             else:
                 print(f"   ❌ Resolution mismatch: expected {expected_size}, got {actual_size}")
@@ -49,7 +49,7 @@ def test_resolution_parameter():
         except Exception as e:
             print(f"   ❌ Error: {e}")
     
-    print(f"\n🎯 Resolution Configuration Test Complete!")
+    print(f"\n Resolution Configuration Test Complete!")
 
 if __name__ == "__main__":
     test_resolution_parameter()

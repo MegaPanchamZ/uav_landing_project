@@ -498,7 +498,7 @@ class UAVFineTuner:
             if val_miou > best_miou:
                 best_miou = val_miou
                 self._save_model(epoch, val_miou, optimizer, scheduler, "best_model.pth")
-                logger.info(f"✅ New best model saved! mIoU: {val_miou:.4f}")
+                logger.info(f" New best model saved! mIoU: {val_miou:.4f}")
                 
             # Save checkpoint every 10 epochs
             if (epoch + 1) % 10 == 0:
@@ -609,7 +609,7 @@ class UAVFineTuner:
                     'output': {0: 'batch_size', 2: 'height', 3: 'width'}
                 }
             )
-            logger.info(f"✅ ONNX export successful: {output_path}")
+            logger.info(f" ONNX export successful: {output_path}")
             return str(output_path)
             
         except Exception as e:
@@ -661,7 +661,7 @@ def main():
         if best_model_path.exists():
             onnx_path = trainer.export_to_onnx(str(best_model_path))
             if onnx_path:
-                print(f"\n🎯 Model exported to ONNX: {onnx_path}")
+                print(f"\n Model exported to ONNX: {onnx_path}")
                 
     print(f"\n🎉 Fine-tuning completed!")
     print(f"📊 Final best mIoU: {history['best_miou']:.4f}")

@@ -24,7 +24,7 @@
 - **Domain**: Dense urban environments
 - **Role**: **High-altitude domain adaptation** + **Urban robustness**
 
-## 🎯 **Strategic Multi-Dataset Usage Plan**
+##  **Strategic Multi-Dataset Usage Plan**
 
 ### **The Challenge: Avoiding Learning Conflicts**
 
@@ -335,7 +335,7 @@ stage1 = SemanticDroneDataset()  # Rich semantics
 stage2 = DroneDeploy1024Dataset()  # Landing specialization
 ```
 
-## 🎯 **Recommended Approach**
+##  **Recommended Approach**
 
 ### **Conservative Strategy (Recommended)**
 1. **Start with DroneDeploy only** - native 6 classes, no mapping issues

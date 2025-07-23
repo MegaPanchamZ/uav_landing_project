@@ -88,7 +88,7 @@ def run_webcam_demo():
         # Print status every 30 frames
         if frame_count % 30 == 0:
             if result.status == "TARGET_ACQUIRED":
-                print(f"🎯 Target: {result.distance:.1f}m, Alt: {altitude:.1f}m, "
+                print(f" Target: {result.distance:.1f}m, Alt: {altitude:.1f}m, "
                       f"Cmd: [{result.forward_velocity:.1f}, {result.right_velocity:.1f}, {result.descent_rate:.1f}]")
             else:
                 print(f"🔍 Status: {result.status}, Alt: {altitude:.1f}m, FPS: {result.fps:.1f}")
@@ -175,7 +175,7 @@ def run_synthetic_demo():
         
         # Print status
         if result.status == "TARGET_ACQUIRED":
-            print(f"🎯 [{pattern}] Target at {result.distance:.1f}m, Alt: {altitude:.1f}m")
+            print(f" [{pattern}] Target at {result.distance:.1f}m, Alt: {altitude:.1f}m")
         else:
             print(f"🔍 [{pattern}] Status: {result.status}, Alt: {altitude:.1f}m")
         
@@ -241,7 +241,7 @@ def run_performance_test():
         fps = test_frames / total_time
         avg_ms = (total_time / test_frames) * 1000
         
-        print(f"✅ Results: {fps:.1f} FPS, {avg_ms:.1f} ms/frame")
+        print(f" Results: {fps:.1f} FPS, {avg_ms:.1f} ms/frame")
     
     # Final stats
     stats = detector.get_performance_stats()
@@ -294,7 +294,7 @@ def main():
                     from convert_to_onnx import convert_model
                     convert_model(pth_path, onnx_path)
                     
-                    print(f"\n✅ Model converted! Update detector initialization:")
+                    print(f"\n Model converted! Update detector initialization:")
                     print(f"   detector = UAVLandingDetector(model_path='models/{onnx_path.split('/')[-1]}')")
                 else:
                     print("❌ Invalid selection")

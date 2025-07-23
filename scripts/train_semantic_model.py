@@ -184,7 +184,7 @@ class Trainer:
                 best_iou = val_metrics.get('miou', 0.0)
                 save_path = output_dir / f"{self.config['model_type']}_best.pth"
                 torch.save(model.state_dict(), save_path)
-                print(f"  ✅ New best model saved to {save_path} (mIoU: {best_iou:.4f})")
+                print(f"   New best model saved to {save_path} (mIoU: {best_iou:.4f})")
 
         wandb.finish()
         print("\n🎉 Training complete!")

@@ -204,7 +204,7 @@ class OptimizedSemanticDroneDataset(Dataset):
         with open(cache_file, 'wb') as f:
             pickle.dump(self.cached_data, f)
         
-        print(f"✅ Pre-processing complete! Cache saved to {cache_file}")
+        print(f" Pre-processing complete! Cache saved to {cache_file}")
     
     def _map_classes(self, label: np.ndarray) -> np.ndarray:
         """Map original classes to landing classes."""
@@ -342,7 +342,7 @@ if __name__ == "__main__":
     )
     
     init_time = time.time() - start_time
-    print(f"✅ Dataset initialization: {init_time:.2f}s")
+    print(f" Dataset initialization: {init_time:.2f}s")
     
     # Test loading speed
     start_time = time.time()
@@ -356,4 +356,4 @@ if __name__ == "__main__":
                 print(f"Context image shape: {sample['context_image'].shape}")
     
     loading_time = time.time() - start_time
-    print(f"✅ Loading 10 samples: {loading_time:.3f}s ({loading_time/10*1000:.1f}ms per sample)") 
+    print(f" Loading 10 samples: {loading_time:.3f}s ({loading_time/10*1000:.1f}ms per sample)") 

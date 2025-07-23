@@ -341,7 +341,7 @@ class ProgressiveTrainer:
             print(f"   Val IoU: {val_metrics['mean_iou']:.4f}")
             print(f"   Best IoU: {best_val_iou:.4f}")
         
-        print(f"✅ Stage {stage_num} completed. Best IoU: {best_val_iou:.4f}")
+        print(f" Stage {stage_num} completed. Best IoU: {best_val_iou:.4f}")
         return model
     
     def adapt_model(self, model: nn.Module, new_in_channels: int, stage_name: str) -> nn.Module:
@@ -470,7 +470,7 @@ class ProgressiveTrainer:
         model = self.train_stage(stage3_data, stage_num=3, pretrained_model=model)
         
         # Final evaluation
-        print("\n🎯 Progressive Training Complete!")
+        print("\n Progressive Training Complete!")
         print("Models saved in:", self.config['output_dir'])
         
         wandb.finish()

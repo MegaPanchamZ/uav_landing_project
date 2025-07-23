@@ -256,7 +256,7 @@ class MemoryEfficientSemanticDataset(Dataset):
             pickle.dump(cache_data, f)
         
         final_memory = self._get_memory_usage()
-        print(f"✅ Efficient preprocessing complete!")
+        print(f" Efficient preprocessing complete!")
         print(f"   Samples cached: {len(self.cached_crops)}")
         print(f"   Final memory: {final_memory:.1f}GB")
         print(f"   Memory increase: {final_memory - initial_memory:.1f}GB")
@@ -324,8 +324,8 @@ def test_memory_efficient_dataset():
     init_time = time.time() - start_time
     final_memory = psutil.Process().memory_info().rss / 1e9
     
-    print(f"✅ Dataset initialization: {init_time:.2f}s")
-    print(f"✅ Memory usage: {final_memory:.1f}GB (+{final_memory-initial_memory:.1f}GB)")
+    print(f" Dataset initialization: {init_time:.2f}s")
+    print(f" Memory usage: {final_memory:.1f}GB (+{final_memory-initial_memory:.1f}GB)")
     
     # Test loading speed
     print(f"\n⚡ Testing loading speed...")
@@ -338,7 +338,7 @@ def test_memory_efficient_dataset():
             print(f"Image dtype: {sample['image'].dtype}")
     
     loading_time = time.time() - start_time
-    print(f"✅ Loading 50 samples: {loading_time:.3f}s ({loading_time/50*1000:.1f}ms per sample)")
+    print(f" Loading 50 samples: {loading_time:.3f}s ({loading_time/50*1000:.1f}ms per sample)")
     print(f"🚀 Speed: {50/loading_time:.1f} samples/sec")
 
 

@@ -127,7 +127,7 @@ class AerialSemantic24Trainer:
         distribution = self.train_dataset.get_class_distribution()
         relevance_stats = self.train_dataset.get_landing_relevant_stats()
         
-        print(f"\n🎯 Landing Relevance Distribution:")
+        print(f"\n Landing Relevance Distribution:")
         for relevance, percentage in relevance_stats.items():
             print(f"   {relevance}: {percentage:.1f}%")
         
@@ -346,7 +346,7 @@ class AerialSemantic24Trainer:
         # Log landing relevance metrics
         if 'landing_relevance_metrics' in metrics:
             relevance_metrics = metrics['landing_relevance_metrics']
-            print(f"\n🎯 Landing Relevance Performance:")
+            print(f"\n Landing Relevance Performance:")
             for relevance, metric_dict in relevance_metrics.items():
                 print(f"   {relevance}: IoU={metric_dict['iou']:.3f}, Acc={metric_dict['accuracy']:.3f}")
         

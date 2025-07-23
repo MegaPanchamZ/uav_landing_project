@@ -83,7 +83,7 @@ def main():
         best_device = sorted_results[0][0]
         best_fps = sorted_results[0][1]['fps']
         
-        print(f"\n🎯 Recommendation: Use '{best_device}' for {best_fps:.1f} FPS")
+        print(f"\n Recommendation: Use '{best_device}' for {best_fps:.1f} FPS")
         
         # Performance improvement calculation
         if 'cpu' in results and len(sorted_results) > 1:

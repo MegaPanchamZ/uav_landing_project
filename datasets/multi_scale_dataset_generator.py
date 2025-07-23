@@ -180,7 +180,7 @@ class MultiScaleDatasetGenerator:
                     else:
                         quality_rejected += 1
         
-        print(f"✅ Dataset generation completed!")
+        print(f" Dataset generation completed!")
         print(f"   Total samples generated: {total_generated}")
         print(f"   Quality rejected: {quality_rejected}")
         print(f"   Quality acceptance rate: {total_generated/(total_generated+quality_rejected)*100:.1f}%")
@@ -438,14 +438,14 @@ class MultiScaleDatasetGenerator:
         
         # Class distribution
         total_pixels = sum(self.class_distribution.values())
-        print(f"\n🎯 Class Distribution (pixels):")
+        print(f"\n Class Distribution (pixels):")
         class_names = {0: 'background', 1: 'safe_landing', 2: 'caution', 3: 'danger'}
         for class_id in sorted(self.class_distribution.keys()):
             count = self.class_distribution[class_id]
             percentage = count / total_pixels * 100
             print(f"   {class_names.get(class_id, f'class_{class_id}')}: {count:,} ({percentage:.1f}%)")
         
-        print(f"\n✅ Dataset generation multiplier: {len(self.generated_samples) / 400:.1f}x")
+        print(f"\n Dataset generation multiplier: {len(self.generated_samples) / 400:.1f}x")
         print(f"   400 base images → {len(self.generated_samples):,} training samples")
 
 
@@ -592,7 +592,7 @@ if __name__ == "__main__":
         transform=train_transform
     )
     
-    print(f"\n✅ Generated dataset ready!")
+    print(f"\n Generated dataset ready!")
     print(f"   Training samples: {len(train_dataset)}")
     
     # Test sample

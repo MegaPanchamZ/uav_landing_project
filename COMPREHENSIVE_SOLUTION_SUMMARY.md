@@ -49,7 +49,7 @@ Class 3 (Danger):        78M pixels (16.17%) ⚖️
 
 ### **Key Innovation: 3-Class System**
 ❌ **OLD**: 4 classes with problematic background  
-✅ **NEW**: 3 classes optimized for aerial landing
+ **NEW**: 3 classes optimized for aerial landing
 
 ```python
 # New mapping strategy
@@ -117,7 +117,7 @@ python scripts/train_aerial_optimized.py \
 - **Old W&B Project**: `uav-landing-memory-efficient`
 - **New W&B Project**: `uav-landing-aerial-optimized`
 
-## 🎯 **Why This Solution Works**
+##  **Why This Solution Works**
 
 ### **1. Eliminates the Problem**
 - Removes 0.28% background class entirely
@@ -148,7 +148,7 @@ python scripts/train_aerial_optimized.py \
 | **Loss** | Complex safety loss | Extreme imbalance focal |
 | **Augmentation** | Generic | Aerial-specific |
 | **Domain** | Street → Aerial | Native aerial |
-| **Expected mIoU** | 27% ❌ | >75% ✅ |
+| **Expected mIoU** | 27% ❌ | >75%  |
 
 ## 🔬 **Research Insights Applied**
 

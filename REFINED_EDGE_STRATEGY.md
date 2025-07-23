@@ -1,6 +1,6 @@
 # 🚁 Refined Edge UAV Landing Strategy (KDP-Net Inspired)
 
-## 🎯 **Research-Backed Approach**
+##  **Research-Backed Approach**
 
 Based on the **KDP-Net research paper** and proper **DroneDeploy dataset utilization**, this refined strategy addresses the real constraints while following proven methodologies.
 
@@ -286,7 +286,7 @@ python optimize_for_edge.py \
 - **Building detection precision**: >95% (avoid collisions)
 - **Ground classification accuracy**: >92% (safe landing)
 
-## 🎯 **Implementation Priorities**
+##  **Implementation Priorities**
 
 ### **Phase 1: Proven Baseline (2 weeks)**
 1. **DroneDeploy preprocessing**: Implement 1024×1024 patch generation

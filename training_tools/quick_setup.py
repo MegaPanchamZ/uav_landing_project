@@ -31,7 +31,7 @@ def install_requirements():
         try:
             subprocess.run([sys.executable, "-m", "pip", "install", req], 
                          check=True, capture_output=True)
-            print(f"✅ Installed {req}")
+            print(f" Installed {req}")
         except subprocess.CalledProcessError as e:
             print(f"❌ Failed to install {req}: {e}")
             
@@ -60,7 +60,7 @@ def check_dataset_structure(data_path):
     image_count = len(list((data_path / "images").glob("*.tif")))
     label_count = len(list((data_path / "labels").glob("*.png")))
     
-    print(f"✅ Dataset structure looks good!")
+    print(f" Dataset structure looks good!")
     print(f"   Found {image_count} images and {label_count} labels")
     
     if image_count == 0:
@@ -84,7 +84,7 @@ def find_pretrained_model():
     
     for path in possible_paths:
         if os.path.exists(path):
-            print(f"✅ Found pre-trained model: {path}")
+            print(f" Found pre-trained model: {path}")
             return path
             
     print("⚠️  No pre-trained model found. Training will start from scratch.")
@@ -162,7 +162,7 @@ def main():
         args.batch_size = 2
         print("🧪 Quick test mode: 5 epochs, batch size 2")
         
-    print("🎯 UAV Landing Detection Fine-Tuning Setup")
+    print(" UAV Landing Detection Fine-Tuning Setup")
     print("=" * 50)
     
     # Install requirements

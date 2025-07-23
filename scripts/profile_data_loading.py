@@ -139,11 +139,11 @@ def main():
     
     print(f"\n💡 OPTIMIZATION RECOMMENDATIONS:")
     if transform_time > 0.01:  # > 10ms
-        print(f"   🎯 MAJOR: Pre-compute transforms (saves {transform_time*1000:.1f}ms)")
+        print(f"    MAJOR: Pre-compute transforms (saves {transform_time*1000:.1f}ms)")
     if tensor_time > 0.005:  # > 5ms
-        print(f"   🎯 Store as tensors directly (saves {tensor_time*1000:.1f}ms)")
+        print(f"    Store as tensors directly (saves {tensor_time*1000:.1f}ms)")
     if cache_time > 0.01:  # > 10ms
-        print(f"   🎯 Optimize cache format (saves {cache_time*1000:.1f}ms)")
+        print(f"    Optimize cache format (saves {cache_time*1000:.1f}ms)")
     
     target_speed = 1000 / single_time  # samples per second
     print(f"\n🚀 Current speed: {target_speed:.1f} samples/sec")

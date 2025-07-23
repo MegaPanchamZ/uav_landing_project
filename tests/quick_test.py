@@ -24,23 +24,23 @@ def quick_test():
     # Test single frame processing
     result = detector.process_frame(test_image, altitude=5.0)
     
-    print(f"✅ Status: {result.status}")
-    print(f"✅ Confidence: {result.confidence:.2f}")
-    print(f"✅ Processing time: {result.processing_time:.1f}ms")
-    print(f"✅ FPS: {result.fps:.1f}")
+    print(f" Status: {result.status}")
+    print(f" Confidence: {result.confidence:.2f}")
+    print(f" Processing time: {result.processing_time:.1f}ms")
+    print(f" FPS: {result.fps:.1f}")
     
     if result.target_pixel:
-        print(f"✅ Target pixel: {result.target_pixel}")
-        print(f"✅ Target world: {result.target_world}")
-        print(f"✅ Distance: {result.distance:.1f}m")
+        print(f" Target pixel: {result.target_pixel}")
+        print(f" Target world: {result.target_world}")
+        print(f" Distance: {result.distance:.1f}m")
     
-    print(f"✅ Commands: [F:{result.forward_velocity:.1f}, R:{result.right_velocity:.1f}, D:{result.descent_rate:.1f}]")
+    print(f" Commands: [F:{result.forward_velocity:.1f}, R:{result.right_velocity:.1f}, D:{result.descent_rate:.1f}]")
     
     # Test performance stats
     stats = detector.get_performance_stats()
-    print(f"✅ Stats: {stats}")
+    print(f" Stats: {stats}")
     
-    print("\n🎯 Single-class implementation working perfectly!")
+    print("\n Single-class implementation working perfectly!")
     return True
 
 if __name__ == "__main__":

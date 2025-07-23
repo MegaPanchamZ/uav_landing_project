@@ -164,7 +164,7 @@ def identify_issues(class_percentages, total_pixels_per_class):
         for issue in issues:
             print(f"  ❌ {issue}")
     else:
-        print("  ✅ No obvious issues detected")
+        print("   No obvious issues detected")
     
     return issues
 
@@ -233,7 +233,7 @@ def main():
     # Suggest improvements
     suggest_improvements(issues)
     
-    print(f"\n🎯 Quick Fix Recommendation:")
+    print(f"\n Quick Fix Recommendation:")
     print("=" * 30)
     print("1. Start with color-based classical CV")
     print("2. Use it as baseline and for data validation") 

@@ -205,7 +205,7 @@ class UAVLandingSystem:
         self.total_processing_time = 0.0
         
         if enable_logging:
-            self.logger.info("✅ UAV Landing System initialized successfully")
+            self.logger.info(" UAV Landing System initialized successfully")
             self.logger.info(f"   Model: {Path(model_path).name}")
             self.logger.info(f"   Neural weight: {self.neural_weight}")
             self.logger.info(f"   Symbolic weight: {self.symbolic_weight}")
@@ -259,7 +259,7 @@ class UAVLandingSystem:
             )
             
             # 4. Neuro-Symbolic Integration
-            self.logger.debug("🎯 Integrating neuro-symbolic decision")
+            self.logger.debug(" Integrating neuro-symbolic decision")
             integrated_decision = self._integrate_neural_symbolic(
                 neural_analysis, symbolic_analysis, base_result
             )
@@ -284,7 +284,7 @@ class UAVLandingSystem:
             processing_time = (time.time() - start_time) * 1000
             self.total_processing_time += processing_time
             
-            self.logger.info(f"✅ Frame {self.frame_count} processed: {enhanced_result.status} "
+            self.logger.info(f" Frame {self.frame_count} processed: {enhanced_result.status} "
                            f"(confidence: {enhanced_result.confidence:.3f}, time: {processing_time:.1f}ms)")
             
             return enhanced_result
@@ -666,13 +666,13 @@ if __name__ == "__main__":
     # Process with full traceability
     result = system.process_frame(test_image, altitude=5.0, enable_tracing=True)
     
-    print(f"✅ Status: {result.status}")
-    print(f"✅ Confidence: {result.confidence:.3f}")
-    print(f"✅ Processing time: {result.processing_time:.1f}ms")
+    print(f" Status: {result.status}")
+    print(f" Confidence: {result.confidence:.3f}")
+    print(f" Processing time: {result.processing_time:.1f}ms")
     
     if result.trace:
-        print(f"✅ Neural classes: {result.trace.neural_classes_detected}")
-        print(f"✅ Risk level: {result.trace.risk_level}")
-        print(f"✅ Explanation: {result.decision_explanation}")
+        print(f" Neural classes: {result.trace.neural_classes_detected}")
+        print(f" Risk level: {result.trace.risk_level}")
+        print(f" Explanation: {result.decision_explanation}")
     
-    print("\n🎯 System ready for deployment!")
+    print("\n System ready for deployment!")

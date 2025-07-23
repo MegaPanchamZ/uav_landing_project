@@ -326,4 +326,4 @@ if __name__ == "__main__":
     print("🛠️ Starting Simple Segmentation Demo")
     train_simple_demo()
     create_prediction_visualization()
-    print("✅ Simple demo completed!") 
+    print(" Simple demo completed!") 

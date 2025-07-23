@@ -52,7 +52,7 @@ class UAVLandingDetector:
         self.input_name = self.session.get_inputs()[0].name
         self.output_name = self.session.get_outputs()[0].name
         
-        print(f"✅ Model loaded: {self.model_path}")
+        print(f" Model loaded: {self.model_path}")
         print(f"   Input: {self.input_name}")
         print(f"   Output: {self.output_name}")
         print(f"   Provider: {self.session.get_providers()[0]}")
@@ -142,7 +142,7 @@ class UAVLandingDetector:
         
         if save_path:
             plt.savefig(save_path, dpi=150, bbox_inches='tight')
-            print(f"✅ Visualization saved: {save_path}")
+            print(f" Visualization saved: {save_path}")
         else:
             plt.show()
             
@@ -150,7 +150,7 @@ class UAVLandingDetector:
         """Analyze the prediction for landing zone statistics."""
         total_pixels = prediction.size
         
-        print("\\n🎯 Landing Zone Analysis:")
+        print("\\n Landing Zone Analysis:")
         print("=" * 30)
         
         suitable_pixels = np.sum(prediction == 1)
@@ -250,7 +250,7 @@ def main():
     print("\\n🎨 Creating visualization...")
     detector.visualize_prediction(image, prediction, args.save)
     
-    print("\\n✅ Testing complete!")
+    print("\\n Testing complete!")
 
 if __name__ == "__main__":
     main()

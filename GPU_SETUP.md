@@ -1,10 +1,10 @@
 # GPU Support Setup Guide
 
 ## Current Status
-✅ NVIDIA GPU detected: RTX 4060 Ti
-✅ TensorRT provider available (Optimal)
-✅ CUDA provider available (Fast)  
-✅ ONNX Runtime GPU support available
+ NVIDIA GPU detected: RTX 4060 Ti
+ TensorRT provider available (Optimal)
+ CUDA provider available (Fast)  
+ ONNX Runtime GPU support available
 ⚠️  Runtime libraries may need installation
 
 ## Performance Hierarchy

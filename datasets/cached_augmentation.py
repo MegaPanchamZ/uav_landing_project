@@ -197,7 +197,7 @@ class CachedAugmentedDataset(Dataset):
         self._save_metadata()
         
         build_time = time.time() - start_time
-        print(f"✅ Dataset cached successfully!")
+        print(f" Dataset cached successfully!")
         print(f"   Time taken: {build_time:.1f} seconds")
         print(f"   Patches created: {len(self.patch_index)}")
         print(f"   Cache size: {self._get_cache_size():.1f} MB")
@@ -676,7 +676,7 @@ def create_cached_datasets(
     total_base = sum(len(config['dataset']) for config in dataset_configs)
     total_augmented = sum(len(dataset) for dataset in cached_datasets.values())
     
-    print(f"\n✅ All datasets cached successfully!")
+    print(f"\n All datasets cached successfully!")
     print(f"📊 Summary:")
     print(f"   Total base images: {total_base}")
     print(f"   Total augmented patches: {total_augmented}")

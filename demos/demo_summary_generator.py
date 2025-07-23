@@ -67,12 +67,12 @@ def generate_demo_summary():
         },
         
         "technical_achievements": {
-            "scallop_cleanup": "✅ Consolidated from 5+ implementations to single working version",
-            "import_fixes": "✅ Updated all import statements across codebase",
-            "real_scallop": "✅ Real Scallop v0.2.5 integration (not mock)",
-            "gpu_acceleration": "✅ TensorRT/CUDA/CPU hierarchy with fallback",
-            "dataset_integration": "✅ Real UDD6 drone imagery processing",
-            "end_to_end": "✅ Complete neural → symbolic → decision pipeline"
+            "scallop_cleanup": " Consolidated from 5+ implementations to single working version",
+            "import_fixes": " Updated all import statements across codebase",
+            "real_scallop": " Real Scallop v0.2.5 integration (not mock)",
+            "gpu_acceleration": " TensorRT/CUDA/CPU hierarchy with fallback",
+            "dataset_integration": " Real UDD6 drone imagery processing",
+            "end_to_end": " Complete neural → symbolic → decision pipeline"
         },
         
         "performance_metrics": {
@@ -120,10 +120,10 @@ def print_summary_report(summary):
     
     print("📊 DEMO RESULTS")
     print("-" * 15)
-    print(f"✅ Dataset: {summary['demo_info']['dataset']}")
-    print(f"✅ Test Image: {summary['demo_info']['test_image']} ({summary['demo_info']['image_specs']['resolution']})")
-    print(f"✅ Neural Result: {summary['demo_results']['neural_analysis']['status']} ({summary['demo_results']['neural_analysis']['confidence']})")
-    print(f"✅ Neuro-Symbolic Result: {summary['demo_results']['neuro_symbolic_analysis']['status']} ({summary['demo_results']['neuro_symbolic_analysis']['confidence']})")
+    print(f" Dataset: {summary['demo_info']['dataset']}")
+    print(f" Test Image: {summary['demo_info']['test_image']} ({summary['demo_info']['image_specs']['resolution']})")
+    print(f" Neural Result: {summary['demo_results']['neural_analysis']['status']} ({summary['demo_results']['neural_analysis']['confidence']})")
+    print(f" Neuro-Symbolic Result: {summary['demo_results']['neuro_symbolic_analysis']['status']} ({summary['demo_results']['neuro_symbolic_analysis']['confidence']})")
     print()
     
     print("🏗️ SYSTEM ARCHITECTURE")
@@ -134,7 +134,7 @@ def print_summary_report(summary):
     print(f"• Context: {summary['system_architecture']['neuro_symbolic']['context']}")
     print()
     
-    print("🎯 TECHNICAL ACHIEVEMENTS")
+    print(" TECHNICAL ACHIEVEMENTS")
     print("-" * 23)
     for achievement, status in summary['technical_achievements'].items():
         description = achievement.replace('_', ' ').title()

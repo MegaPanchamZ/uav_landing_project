@@ -149,7 +149,7 @@ def create_model_architecture_visualization():
    • File Size: 1.3 MB
    • Memory: <2GB VRAM
 
-🎯 Accuracy:
+ Accuracy:
    • IoU Score: 59.0%
    • Training Time: 25 min"""
     
@@ -182,7 +182,7 @@ def create_model_architecture_visualization():
     plt.tight_layout()
     plt.savefig('visualizations/model_architecture.png', dpi=300, bbox_inches='tight')
     plt.savefig('visualizations/model_architecture.pdf', bbox_inches='tight')
-    print("✅ Architecture diagram saved to visualizations/model_architecture.png")
+    print(" Architecture diagram saved to visualizations/model_architecture.png")
     
     return fig
 
@@ -273,7 +273,7 @@ def create_training_pipeline_diagram():
     
     plt.tight_layout()
     plt.savefig('visualizations/training_pipeline.png', dpi=300, bbox_inches='tight')
-    print("✅ Training pipeline diagram saved to visualizations/training_pipeline.png")
+    print(" Training pipeline diagram saved to visualizations/training_pipeline.png")
     
     return fig
 
@@ -288,7 +288,7 @@ if __name__ == "__main__":
     print("🎨 Creating training pipeline visualization...")  
     pipeline_fig = create_training_pipeline_diagram()
     
-    print("✅ All visualizations created successfully!")
+    print(" All visualizations created successfully!")
     print("📁 Files saved in visualizations/")
     
     # Display if in interactive mode

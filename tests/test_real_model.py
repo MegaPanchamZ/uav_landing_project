@@ -48,7 +48,7 @@ def test_real_model():
             print(f"   Target: pixel={result.target_pixel}, world={result.target_world}")
             print(f"   Commands: F={result.forward_velocity:.2f}, R={result.right_velocity:.2f}, D={result.descent_rate:.2f}")
     
-    print("\n🎯 Real ONNX model test completed!")
+    print("\n Real ONNX model test completed!")
     print(f"📊 Final stats: {detector.get_performance_stats()}")
     
     # Save a test visualization if available

@@ -34,7 +34,7 @@ def test_model_creation():
     with torch.no_grad():
         outputs = model(x)
         
-    print(f"✅ Model created successfully")
+    print(f" Model created successfully")
     print(f"   Output keys: {list(outputs.keys())}")
     print(f"   Main output shape: {outputs['main'].shape}")
     if 'uncertainty' in outputs:
@@ -84,21 +84,21 @@ def test_weight_adaptation():
             freeze_backbone=False
         )
         
-        print("✅ Weight adaptation successful!")
+        print(" Weight adaptation successful!")
         
         # Test forward pass with adapted model
         x = torch.randn(2, 3, 512, 512)
         with torch.no_grad():
             outputs = adapted_model(x)
             
-        print(f"✅ Forward pass with adapted weights successful")
+        print(f" Forward pass with adapted weights successful")
         print(f"   Output shape: {outputs['main'].shape}")
         print(f"   Expected: [2, 4, 512, 512] (batch, classes, height, width)")
         
         # Verify output shape is correct
         expected_shape = (2, 4, 512, 512)
         if outputs['main'].shape == expected_shape:
-            print("✅ Output shape verification passed")
+            print(" Output shape verification passed")
         else:
             print(f"❌ Output shape mismatch: {outputs['main'].shape} vs {expected_shape}")
             
@@ -127,7 +127,7 @@ def test_training_integration():
         # Set auto-detection
         config['model']['pretrained_path'] = "auto_detect_cityscapes_bisenetv2"
         
-        print("✅ Training config with auto-detection created")
+        print(" Training config with auto-detection created")
         print(f"   Model type: {config['model']['type']}")
         print(f"   Pretrained path: {config['model']['pretrained_path']}")
         
@@ -168,7 +168,7 @@ def main():
     total = len(results)
     
     for test_name, result in results:
-        status = "✅ PASS" if result else "❌ FAIL"
+        status = " PASS" if result else "❌ FAIL"
         print(f"   {test_name}: {status}")
         if result:
             passed += 1

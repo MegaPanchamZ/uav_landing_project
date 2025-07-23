@@ -16,7 +16,7 @@ print("▫️ Stage 2 (UDD6): Val Loss 0.738, IoU 59.0% ✅")
 print("▫️ Training Speed: ~2.5s/iteration (vs 10s+ before) ⚡")
 print("▫️ Total Training Time: ~25 minutes (vs hours) ⚡")
 
-print("\n🎯 MODEL PERFORMANCE:")
+print("\n MODEL PERFORMANCE:")
 print("▫️ PyTorch Inference: 1.0ms (1,022 FPS) ⚡⚡⚡")
 print("▫️ ONNX Inference: 8.2ms (121 FPS) ⚡⚡")
 print("▫️ Model Size: 1.3 MB (vs 48MB before) 📦")
@@ -28,16 +28,16 @@ print("│ Approach            │ Speed       │ Accuracy    │ Model Size   
 print("├─────────────────────┼─────────────┼─────────────┼──────────────┤")
 print("│ Previous ML (bad)   │ 5000ms      │ 27% mIoU    │ 48 MB        │")
 print("│ Classical CV        │ 3-13ms      │ Good        │ N/A          │")
-print("│ Ultra-Fast ML ✅    │ 1.0ms       │ 59% IoU     │ 1.3 MB       │")
+print("│ Ultra-Fast ML     │ 1.0ms       │ 59% IoU     │ 1.3 MB       │")
 print("└─────────────────────┴─────────────┴─────────────┴──────────────┘")
 
 print("\n🏆 KEY ACHIEVEMENTS:")
-print("✅ 5000x speed improvement (5s → 1ms)")
-print("✅ 37x smaller model size (48MB → 1.3MB)")  
-print("✅ 2x better accuracy (27% → 59% IoU)")
-print("✅ Proper staged fine-tuning pipeline")
-print("✅ 8GB GPU optimized training")
-print("✅ Mixed precision & ultra-fast training")
+print(" 5000x speed improvement (5s → 1ms)")
+print(" 37x smaller model size (48MB → 1.3MB)")  
+print(" 2x better accuracy (27% → 59% IoU)")
+print(" Proper staged fine-tuning pipeline")
+print(" 8GB GPU optimized training")
+print(" Mixed precision & ultra-fast training")
 
 print("\n📁 FINAL FILES:")
 print("▫️ ultra_fast_training.py - Ultra-optimized training pipeline")
@@ -46,7 +46,7 @@ print("▫️ ultra_stage2_best.pth - Final UDD6 fine-tuned model ⭐")
 print("▫️ models/ultra_fast_uav_landing.onnx - Production-ready ONNX ⭐")
 print("▫️ classical_detector.py - Classical CV fallback")
 
-print("\n🎯 DEPLOYMENT READY:")
+print("\n DEPLOYMENT READY:")
 print("▫️ Use ultra_fast_uav_landing.onnx for production")
 print("▫️ Input: RGB image 256x256")
 print("▫️ Output: 4-class segmentation (Background, Safe, Caution, Danger)")
@@ -63,11 +63,11 @@ with open("FINAL_ULTRA_STATUS.md", "w") as f:
 
 ### 📈 Training Results
 - **Stage 1 (DroneDeploy)**: Val Loss 0.946 ✅
-- **Stage 2 (UDD6)**: Val Loss 0.738, IoU 59.0% ✅  
+- **Stage 2 (UDD6)**: Val Loss 0.738, IoU 59.0%   
 - **Training Speed**: ~2.5s/iteration (vs 10s+ before) ⚡
 - **Total Training Time**: ~25 minutes (vs hours) ⚡
 
-### 🎯 Model Performance
+###  Model Performance
 - **PyTorch Inference**: 1.0ms (1,022 FPS) ⚡⚡⚡
 - **ONNX Inference**: 8.2ms (121 FPS) ⚡⚡
 - **Model Size**: 1.3 MB (vs 48MB before) 📦
@@ -81,12 +81,12 @@ with open("FINAL_ULTRA_STATUS.md", "w") as f:
 | **Ultra-Fast ML ✅** | **1.0ms** | **59% IoU** | **1.3 MB** |
 
 ### 🏆 Key Achievements
-- ✅ **5000x speed improvement** (5s → 1ms)
-- ✅ **37x smaller model** (48MB → 1.3MB)
-- ✅ **2x better accuracy** (27% → 59% IoU)
-- ✅ Proper staged fine-tuning pipeline
-- ✅ 8GB GPU optimized training
-- ✅ Mixed precision & ultra-fast training
+-  **5000x speed improvement** (5s → 1ms)
+-  **37x smaller model** (48MB → 1.3MB)
+-  **2x better accuracy** (27% → 59% IoU)
+-  Proper staged fine-tuning pipeline
+-  8GB GPU optimized training
+-  Mixed precision & ultra-fast training
 
 ### 📁 Final Files
 - `ultra_fast_training.py` - Ultra-optimized training pipeline
@@ -95,7 +95,7 @@ with open("FINAL_ULTRA_STATUS.md", "w") as f:
 - `models/ultra_fast_uav_landing.onnx` - Production-ready ONNX ⭐
 - `classical_detector.py` - Classical CV fallback
 
-### 🎯 Deployment Ready
+###  Deployment Ready
 - **Use**: `ultra_fast_uav_landing.onnx` for production
 - **Input**: RGB image 256x256
 - **Output**: 4-class segmentation (Background, Safe, Caution, Danger)
@@ -130,5 +130,5 @@ for file in old_files:
         shutil.move(file, backup_dir / file)
         print(f"📦 Moved {file} to backup")
 
-print("✅ Cleanup complete!")
-print("\n🎯 Ready for deployment! Use models/ultra_fast_uav_landing.onnx")
+print(" Cleanup complete!")
+print("\n Ready for deployment! Use models/ultra_fast_uav_landing.onnx")

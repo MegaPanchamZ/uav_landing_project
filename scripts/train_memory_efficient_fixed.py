@@ -222,8 +222,8 @@ class ImprovedTrainer:
             preprocess_on_init=True
         )
 
-        print(f"  ✅ Training samples: {len(train_dataset)}")
-        print(f"  ✅ Validation samples: {len(val_dataset)}")
+        print(f"   Training samples: {len(train_dataset)}")
+        print(f"   Validation samples: {len(val_dataset)}")
         
         # Analyze class distribution
         self._analyze_dataset_balance(train_dataset)
@@ -351,7 +351,7 @@ class ImprovedTrainer:
                 best_iou = current_miou
                 save_path = output_dir / f"fixed_memory_efficient_{self.config['model_type']}_best.pth"
                 torch.save(model.state_dict(), save_path)
-                print(f"  ✅ New best model saved to {save_path} (mIoU: {best_iou:.4f})")
+                print(f"   New best model saved to {save_path} (mIoU: {best_iou:.4f})")
 
         wandb.finish()
         print("\n🔧 Fixed training complete!")

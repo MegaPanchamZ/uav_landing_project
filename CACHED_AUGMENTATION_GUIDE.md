@@ -118,7 +118,7 @@ Traditional Options:
   --augmentation-factor INT Patches per image for real-time mode
 ```
 
-## 🎯 **Recommended Augmentation Factors**
+##  **Recommended Augmentation Factors**
 
 Based on dataset quality and resolution potential:
 

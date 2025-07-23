@@ -521,10 +521,10 @@ if __name__ == "__main__":
     criterion = CombinedSafetyLoss(num_classes=num_classes)
     loss_dict = criterion(outputs, targets)
     
-    print(f"✅ Combined Safety Loss: {loss_dict['total_loss'].item():.4f}")
+    print(f" Combined Safety Loss: {loss_dict['total_loss'].item():.4f}")
     print(f"   - Focal Loss: {loss_dict['focal_loss'].item():.4f}")
     print(f"   - Dice Loss: {loss_dict['dice_loss'].item():.4f}")
     print(f"   - Boundary Loss: {loss_dict['boundary_loss'].item():.4f}")
     print(f"   - Uncertainty Loss: {loss_dict['uncertainty_loss'].item():.4f}")
     
-    print("✅ Loss function tests passed!") 
+    print(" Loss function tests passed!") 

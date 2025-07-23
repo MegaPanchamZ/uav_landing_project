@@ -16,13 +16,13 @@ if ! nvidia-smi > /dev/null 2>&1; then
 fi
 
 GPU_INFO=$(nvidia-smi --query-gpu=name --format=csv,noheader,nounits | head -1)
-echo "✅ Detected GPU: $GPU_INFO"
+echo " Detected GPU: $GPU_INFO"
 
 # Check CUDA version
 echo ""
 echo "2. Checking CUDA version..."
 CUDA_VERSION=$(nvidia-smi | grep "CUDA Version" | sed 's/.*CUDA Version: \([0-9.]*\).*/\1/')
-echo "✅ CUDA Driver: $CUDA_VERSION"
+echo " CUDA Driver: $CUDA_VERSION"
 
 # Determine CUDA major version for TensorRT compatibility
 CUDA_MAJOR=$(echo $CUDA_VERSION | cut -d. -f1)
@@ -72,7 +72,7 @@ print(f'Detector using: {detector.actual_device}')
 "
         
         if [ $? -eq 0 ]; then
-            echo "✅ TensorRT installation successful!"
+            echo " TensorRT installation successful!"
             echo ""
             echo "Performance comparison:"
             echo "  🐢 CPU: ~20-25 FPS"
@@ -119,7 +119,7 @@ except Exception as e:
 "
 
 echo ""
-echo "🎯 Setup Complete!"
+echo " Setup Complete!"
 echo ""
 echo "Next steps:"
 echo "  - Run 'python3 uav_landing_main.py' to test the system"

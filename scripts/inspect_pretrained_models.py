@@ -19,7 +19,7 @@ def inspect_model(model_path: str):
     try:
         # Load the model
         checkpoint = torch.load(model_path, map_location='cpu')
-        print(f"✅ Model loaded successfully")
+        print(f" Model loaded successfully")
         
         # Check what's in the checkpoint
         print(f"📋 Checkpoint keys: {list(checkpoint.keys())}")
@@ -67,7 +67,7 @@ def inspect_model(model_path: str):
                     print(f"   ... and {len(layers) - 5} more")
         
         # Check output layers specifically (these need adaptation)
-        print(f"\n🎯 Output/Classifier layers:")
+        print(f"\n Output/Classifier layers:")
         output_layers = [
             (name, param.shape) for name, param in state_dict.items()
             if any(x in name.lower() for x in ['classifier', 'cls', 'head', 'conv_last'])

@@ -10,14 +10,14 @@ if ! nvidia-smi &> /dev/null; then
     exit 0
 fi
 
-echo "✅ NVIDIA GPU detected"
+echo " NVIDIA GPU detected"
 nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader,nounits
 
 # Check CUDA installation
 CUDA_VERSION=""
 if command -v nvcc &> /dev/null; then
     CUDA_VERSION=$(nvcc --version | grep "release" | awk '{print $6}' | cut -c2-)
-    echo "✅ CUDA toolkit found: $CUDA_VERSION"
+    echo " CUDA toolkit found: $CUDA_VERSION"
 else
     echo "⚠️  CUDA toolkit not found. Installing..."
     
@@ -61,7 +61,7 @@ python3 -c "
 import onnxruntime as ort
 print('Available providers:', ort.get_available_providers())
 if 'CUDAExecutionProvider' in ort.get_available_providers():
-    print('✅ CUDA support is available!')
+    print(' CUDA support is available!')
 else:
     print('❌ CUDA support not available')
 "

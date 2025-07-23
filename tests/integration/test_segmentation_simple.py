@@ -141,7 +141,7 @@ def test_fine_tuned_segmentation():
     
     for i, (scenario_name, test_image) in enumerate(scenarios, 1):
         print(f"\n{'='*50}")
-        print(f"🎯 Scenario {i}: {scenario_name}")
+        print(f" Scenario {i}: {scenario_name}")
         print(f"{'='*50}")
         
         # Process the image
@@ -151,9 +151,9 @@ def test_fine_tuned_segmentation():
         processing_time = (time.time() - start_time) * 1000
         
         # Print results
-        print(f"✅ Processing completed!")
+        print(f" Processing completed!")
         print(f"   ⏱️  Total time: {processing_time:.1f}ms")
-        print(f"   🎯 Status: {result.status}")
+        print(f"    Status: {result.status}")
         print(f"   📊 Confidence: {result.confidence:.3f}")
         print(f"   📈 FPS: {result.fps:.1f}")
         print(f"   🛬 Landing phase: {detector.landing_phase}")
@@ -210,7 +210,7 @@ def test_fine_tuned_segmentation():
     print(f"   Average FPS: {1000/avg_time:.1f}")
     print(f"   Target detection rate: {target_detection_rate:.0f}%")
     print(f"   Model size: {os.path.getsize(model_path) / 1024**2:.1f} MB")
-    print(f"   Real-time capable: {'✅ Yes' if avg_time < 33 else '❌ No'}")
+    print(f"   Real-time capable: {' Yes' if avg_time < 33 else '❌ No'}")
     
     print(f"\n📊 Individual Results:")
     for result in all_results:
@@ -230,6 +230,6 @@ def test_fine_tuned_segmentation():
 if __name__ == "__main__":
     success = test_fine_tuned_segmentation()
     if success:
-        print("\n✅ All tests completed successfully!")
+        print("\n All tests completed successfully!")
     else:
         print("\n❌ Some tests failed!")

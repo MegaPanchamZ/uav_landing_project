@@ -18,7 +18,7 @@ def check_training_progress():
     best_model = output_dir / "best_model.pth"
     onnx_model = output_dir / "bisenetv2_uav_landing.onnx"
     
-    print("🎯 UAV Landing Detection Fine-Tuning Monitor")
+    print(" UAV Landing Detection Fine-Tuning Monitor")
     print("=" * 50)
     
     # Check if training has started
@@ -75,14 +75,14 @@ def check_training_progress():
     
     # Check model files
     if best_model.exists():
-        print(f"✅ Best model saved: {best_model}")
+        print(f" Best model saved: {best_model}")
         model_size = best_model.stat().st_size / (1024*1024)
         print(f"   Model size: {model_size:.1f} MB")
     else:
         print("⏳ Best model not saved yet.")
         
     if onnx_model.exists():
-        print(f"✅ ONNX model exported: {onnx_model}")
+        print(f" ONNX model exported: {onnx_model}")
         onnx_size = onnx_model.stat().st_size / (1024*1024)
         print(f"   ONNX size: {onnx_size:.1f} MB")
         print("   🚀 Ready for deployment!")

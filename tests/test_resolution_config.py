@@ -82,10 +82,10 @@ def test_resolutions():
             # Calculate FPS
             fps = 1000 / total_time if total_time > 0 else 0
             
-            print(f"   ✅ Status: {result.status}")
+            print(f"    Status: {result.status}")
             print(f"   📊 Confidence: {result.confidence:.3f}")
             print(f"   ⏱️  Processing Time: {total_time:.1f}ms")
-            print(f"   🎯 Estimated FPS: {fps:.1f}")
+            print(f"    Estimated FPS: {fps:.1f}")
             
             if result.target_pixel:
                 print(f"   📍 Target Location: {result.target_pixel}")
@@ -135,7 +135,7 @@ def test_resolutions():
               f"{result['status']:<15} {result['confidence']:<12.3f}")
     
     # Recommendations
-    print("\n🎯 RECOMMENDATIONS BY USE CASE:")
+    print("\n RECOMMENDATIONS BY USE CASE:")
     print("-" * 40)
     
     recommendations = {
@@ -165,7 +165,7 @@ def test_resolutions():
             best_quality = max(high_conf_results, key=lambda x: x['confidence'])
             print(f"• Best confidence: {best_quality['confidence']:.3f} at {best_quality['resolution']}")
     
-    print(f"\n✅ Test completed! {len([r for r in results if r['status'] != 'ERROR'])}/{len(results)} resolutions working")
+    print(f"\n Test completed! {len([r for r in results if r['status'] != 'ERROR'])}/{len(results)} resolutions working")
     
     return results
 
@@ -216,5 +216,5 @@ if __name__ == "__main__":
     # Dynamic resolution test
     test_dynamic_resolution()
     
-    print("\n🎯 Test Complete! Check the results above to choose your optimal resolution.")
+    print("\n Test Complete! Check the results above to choose your optimal resolution.")
     print("📖 For more details, see: docs/RESOLUTION_UPGRADE_GUIDE.md")

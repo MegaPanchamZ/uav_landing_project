@@ -32,7 +32,7 @@ def test_mmseg_model_creation():
     with torch.no_grad():
         outputs = model(x)
         
-    print(f"✅ Model created and tested successfully")
+    print(f" Model created and tested successfully")
     print(f"   Output keys: {list(outputs.keys())}")
     print(f"   Main output shape: {outputs['main'].shape}")
     if 'uncertainty' in outputs:
@@ -65,7 +65,7 @@ def test_pretrained_loading():
             pretrained_path=str(pretrained_path)
         )
         
-        print("✅ Pretrained weights loaded successfully!")
+        print(" Pretrained weights loaded successfully!")
         
         # Test forward pass with pretrained weights
         x = torch.randn(2, 3, 512, 512)
@@ -74,14 +74,14 @@ def test_pretrained_loading():
         with torch.no_grad():
             outputs = model(x)
             
-        print(f"✅ Forward pass with pretrained weights successful")
+        print(f" Forward pass with pretrained weights successful")
         print(f"   Output shape: {outputs['main'].shape}")
         print(f"   Expected: [2, 4, 512, 512] (batch, classes, height, width)")
         
         # Verify output shape
         expected_shape = (2, 4, 512, 512)
         if outputs['main'].shape == expected_shape:
-            print("✅ Output shape verification passed")
+            print(" Output shape verification passed")
         else:
             print(f"❌ Output shape mismatch: {outputs['main'].shape} vs {expected_shape}")
             return False
@@ -91,7 +91,7 @@ def test_pretrained_loading():
             uncertainty_shape = outputs['uncertainty'].shape
             expected_uncertainty_shape = (2, 1, 512, 512)
             if uncertainty_shape == expected_uncertainty_shape:
-                print("✅ Uncertainty shape verification passed")
+                print(" Uncertainty shape verification passed")
             else:
                 print(f"❌ Uncertainty shape mismatch: {uncertainty_shape} vs {expected_uncertainty_shape}")
                 return False
@@ -99,7 +99,7 @@ def test_pretrained_loading():
         # Check if weights are actually loaded (not all zeros)
         main_output_mean = outputs['main'].mean().item()
         if abs(main_output_mean) > 1e-6:  # Should not be exactly zero
-            print(f"✅ Weights appear to be loaded (output mean: {main_output_mean:.6f})")
+            print(f" Weights appear to be loaded (output mean: {main_output_mean:.6f})")
         else:
             print(f"⚠️ Output appears to be zeros (possible weight loading issue)")
         
@@ -130,7 +130,7 @@ def test_training_mode():
         with torch.no_grad():
             outputs = model(x)
         
-        print(f"✅ Training mode test successful")
+        print(f" Training mode test successful")
         print(f"   Output keys: {list(outputs.keys())}")
         
         if 'aux' in outputs:
@@ -146,7 +146,7 @@ def test_training_mode():
                     print(f"❌ Aux output {i} shape mismatch: {aux.shape} vs {expected_aux_shape}")
                     return False
             
-            print("✅ All auxiliary outputs have correct shape")
+            print(" All auxiliary outputs have correct shape")
         else:
             print("⚠️ No auxiliary outputs found in training mode")
         
@@ -240,7 +240,7 @@ def main():
     total = len(results)
     
     for test_name, result in results:
-        status = "✅ PASS" if result else "❌ FAIL"
+        status = " PASS" if result else "❌ FAIL"
         print(f"   {test_name}: {status}")
         if result:
             passed += 1

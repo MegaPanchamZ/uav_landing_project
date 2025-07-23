@@ -251,7 +251,7 @@ class UltraFastTrainer:
                 best_val_loss = avg_val_loss
                 torch.save(model.state_dict(), 'ultra_stage1_best.pth')
         
-        print(f"✅ Stage 1 complete! Best val loss: {best_val_loss:.4f}")
+        print(f" Stage 1 complete! Best val loss: {best_val_loss:.4f}")
         return model, history
     
     def train_stage2(self, dataset_path, stage1_model_path, epochs=10, batch_size=8, lr=1e-4):
@@ -382,7 +382,7 @@ class UltraFastTrainer:
                 best_val_loss = avg_val_loss
                 torch.save(model.state_dict(), 'ultra_stage2_best.pth')
         
-        print(f"✅ Stage 2 complete! Best val loss: {best_val_loss:.4f}")
+        print(f" Stage 2 complete! Best val loss: {best_val_loss:.4f}")
         return model, history
 
 def main():
@@ -418,7 +418,7 @@ def main():
             lr=3e-4,   # Higher learning rate
             accumulation_steps=1
         )
-        print("✅ Stage 1 completed!")
+        print(" Stage 1 completed!")
     else:
         print(f"❌ DroneDeploy dataset not found")
         return

@@ -304,7 +304,7 @@ def load_udd_validation_images(dataset_path: str, max_images: int = 5) -> List[T
             print(f"⚠️ Error loading {img_file}: {e}")
             continue
     
-    print(f"✅ Loaded {len(loaded_images)} UDD validation images")
+    print(f" Loaded {len(loaded_images)} UDD validation images")
     return loaded_images
 
 def visualize_neuro_symbolic_analysis(image: np.ndarray, 
@@ -459,7 +459,7 @@ def test_udd_with_neuro_symbolic_reasoning():
         print("❌ No UDD images loaded, cannot proceed")
         return False
     
-    print(f"✅ Loaded {len(udd_images)} real UAV images from UDD dataset")
+    print(f" Loaded {len(udd_images)} real UAV images from UDD dataset")
     
     # Test each image with neuro-symbolic reasoning
     all_results = []
@@ -467,7 +467,7 @@ def test_udd_with_neuro_symbolic_reasoning():
     
     for i, (image_name, image, ground_truth) in enumerate(udd_images, 1):
         print(f"\n{'='*60}")
-        print(f"🎯 Testing Image {i}/{len(udd_images)}: {image_name}")
+        print(f" Testing Image {i}/{len(udd_images)}: {image_name}")
         print(f"   Image size: {image.shape}")
         print(f"   Ground truth available: {'✅' if ground_truth is not None else '❌'}")
         print(f"{'='*60}")
@@ -483,7 +483,7 @@ def test_udd_with_neuro_symbolic_reasoning():
             processing_time = (time.time() - start_time) * 1000
             
             print(f"   ⏱️  Processing time: {processing_time:.1f}ms")
-            print(f"   🎯 Status: {result.status}")
+            print(f"    Status: {result.status}")
             print(f"   📊 Confidence: {result.confidence:.3f}")
             print(f"   📈 FPS: {result.fps:.1f}")
             
@@ -505,7 +505,7 @@ def test_udd_with_neuro_symbolic_reasoning():
                 
                 print(f"   🧠 Neural classes detected: {list(reasoning_analysis['neural_output']['class_distribution'].keys())}")
                 print(f"   🔬 Symbolic candidates found: {len(reasoning_analysis['symbolic_reasoning']['landing_candidates'])}")
-                print(f"   🎯 Final scored zones: {len(reasoning_analysis['combined_decision']['scored_zones'])}")
+                print(f"    Final scored zones: {len(reasoning_analysis['combined_decision']['scored_zones'])}")
                 print(f"   ⚠️  Risk level: {reasoning_analysis['risk_assessment']['risk_level']}")
                 print(f"   📋 Recommendation: {reasoning_analysis['risk_assessment']['recommendation']}")
                 
@@ -596,7 +596,7 @@ if __name__ == "__main__":
     success = test_udd_with_neuro_symbolic_reasoning()
     
     if success:
-        print(f"\n✅ All tests completed successfully!")
-        print(f"🎯 Your fine-tuned model demonstrates excellent neuro-symbolic reasoning capabilities!")
+        print(f"\n All tests completed successfully!")
+        print(f" Your fine-tuned model demonstrates excellent neuro-symbolic reasoning capabilities!")
     else:
         print(f"\n❌ Some tests failed!")

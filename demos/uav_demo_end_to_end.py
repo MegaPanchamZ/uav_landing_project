@@ -225,14 +225,14 @@ def main():
         fig = create_visualization(image, neural_result, neuro_symbolic_result, output_path)
         
         # 6. Final summary
-        print(f"\n🎯 Demo Summary")
+        print(f"\n Demo Summary")
         print("=" * 15)
         print(f"   Image: {image_path.name}")
         print(f"   Neural result: {neural_result.status} ({neural_result.confidence:.3f})")
         print(f"   Neuro-symbolic result: {neuro_symbolic_result.status} ({neuro_symbolic_result.confidence:.3f})")
         print(f"   Visualization saved: {output_path}")
         print()
-        print("✅ End-to-end demo completed successfully!")
+        print(" End-to-end demo completed successfully!")
         
         # Show the plot
         plt.show()

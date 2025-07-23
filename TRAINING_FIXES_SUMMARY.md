@@ -130,7 +130,7 @@ python scripts/analyze_class_distribution.py
 - Extremely high loss values
 - Memory allocation errors
 
-## 🎯 Next Steps
+##  Next Steps
 
 1. **Run the fixed training script**
 2. **Monitor class-specific performance**  

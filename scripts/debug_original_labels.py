@@ -88,7 +88,7 @@ def investigate_original_dataset():
     
     print(f"\n📊 GLOBAL ANALYSIS")
     print(f"=" * 40)
-    print(f"🎯 All unique pixel values found: {sorted(all_unique_values)}")
+    print(f" All unique pixel values found: {sorted(all_unique_values)}")
     print(f"🔢 Total number of classes: {len(all_unique_values)}")
     
     # Calculate global distribution
@@ -133,7 +133,7 @@ def investigate_original_dataset():
             unmapped_pixels += pixel_count
             print(f"   Original {original_class:3d} → UNMAPPED ({pixel_count:8,} pixels)")
     
-    print(f"\n🎯 Final Landing Class Distribution:")
+    print(f"\n Final Landing Class Distribution:")
     landing_class_names = {0: "Background", 1: "Safe Landing", 2: "Caution", 3: "Danger"}
     
     total_mapped_pixels = sum(mapped_distribution.values())
@@ -154,7 +154,7 @@ def investigate_original_dataset():
     original_class_23_pixels = global_distribution.get(23, 0)
     total_background_pixels = original_class_0_pixels + original_class_23_pixels
     
-    print(f"🎯 Background class analysis:")
+    print(f" Background class analysis:")
     print(f"   Original class 0:  {original_class_0_pixels:8,} pixels")
     print(f"   Original class 23: {original_class_23_pixels:8,} pixels")
     print(f"   Total background:  {total_background_pixels:8,} pixels")

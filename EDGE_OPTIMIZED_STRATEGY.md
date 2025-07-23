@@ -1,6 +1,6 @@
 # 🚁 Edge-Optimized UAV Landing Strategy
 
-## 🎯 **Real-World Constraints Addressed**
+##  **Real-World Constraints Addressed**
 
 ### **Hardware Requirements**
 - **Real-time inference**: <50ms per frame on edge hardware
@@ -187,7 +187,7 @@ extreme_augmentation = A.Compose([
 ])
 ```
 
-## 🎯 **Performance Targets (Realistic)**
+##  **Performance Targets (Realistic)**
 
 ### **Speed Requirements**
 - **Neural inference**: <25ms (256x256 input)

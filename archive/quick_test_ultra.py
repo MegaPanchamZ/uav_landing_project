@@ -77,7 +77,7 @@ def test_ultra_model():
     # Find stage 2 model
     stage2_path = Path("ultra_stage2_best.pth")
     if stage2_path.exists():
-        print("✅ Found stage 2 model")
+        print(" Found stage 2 model")
         checkpoint = torch.load(stage2_path, map_location=device)
         model.load_state_dict(checkpoint)
     else:
@@ -105,8 +105,8 @@ def test_ultra_model():
     avg_time = np.mean(times)
     std_time = np.std(times)
     
-    print(f"🎯 Average inference: {avg_time:.1f}±{std_time:.1f}ms")
-    print(f"🎯 Throughput: {1000/avg_time:.1f} FPS")
+    print(f" Average inference: {avg_time:.1f}±{std_time:.1f}ms")
+    print(f" Throughput: {1000/avg_time:.1f} FPS")
     
     # Test with real image if available
     test_images = list(Path("../datasets/UDD/UDD/UDD6/src/train/images").glob("*.jpg"))

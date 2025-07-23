@@ -137,18 +137,41 @@ class DroneDeploy1024Dataset(Dataset):
         return self.cache_dir / f"patches_{params_hash}.pkl"
     
     def _load_cached_patches(self, cache_file: Path) -> List[Dict]:
-        """Load patches from cache."""
+        """Load patches from cache with error handling."""
         
-        with open(cache_file, 'rb') as f:
-            cached_data = pickle.load(f)
-        
-        # Verify cache is still valid
-        if cached_data['image_count'] != len(list(self.images_dir.glob("*.tif"))):
-            print(f"   ⚠️  Cache outdated, regenerating...")
+        try:
+            with open(cache_file, 'rb') as f:
+                cached_data = pickle.load(f)
+            
+            # Verify cache structure
+            if not isinstance(cached_data, dict) or 'patches' not in cached_data:
+                print(f"   ⚠️  Invalid cache structure, regenerating...")
+                return self._generate_and_cache_patches()
+            
+            # Verify cache is still valid
+            if cached_data.get('image_count', 0) != len(list(self.images_dir.glob("*.tif"))):
+                print(f"   ⚠️  Cache outdated, regenerating...")
+                return self._generate_and_cache_patches()
+            
+            patches = cached_data['patches']
+            if not isinstance(patches, list) or len(patches) == 0:
+                print(f"   ⚠️  Empty or invalid patches, regenerating...")
+                return self._generate_and_cache_patches()
+            
+            print(f"    Loaded {len(patches)} cached patches")
+            return patches
+            
+        except (pickle.UnpicklingError, EOFError, FileNotFoundError) as e:
+            print(f"   ⚠️  Cache corrupted ({e}), regenerating...")
+            # Remove corrupted cache file
+            if cache_file.exists():
+                cache_file.unlink()
             return self._generate_and_cache_patches()
-        
-        print(f"   ✅ Loaded {len(cached_data['patches'])} cached patches")
-        return cached_data['patches']
+        except Exception as e:
+            print(f"   ❌ Unexpected cache error ({e}), regenerating...")
+            if cache_file.exists():
+                cache_file.unlink()
+            return self._generate_and_cache_patches()
     
     def _generate_and_cache_patches(self) -> List[Dict]:
         """Generate patches and save to cache."""
@@ -236,7 +259,7 @@ class DroneDeploy1024Dataset(Dataset):
                     
                     if img_size > 1024 * 1024 and label_size > 1024:  # Reasonable size check
                         image_files.append((img_path, label_path))
-                        print(f"   ✅ Matched: {img_path.name} → {label_name}")
+                        print(f"    Matched: {img_path.name} → {label_name}")
                     else:
                         print(f"   ⚠️  Skipping small file: {img_path.name}")
                         
@@ -572,7 +595,7 @@ if __name__ == "__main__":
             edge_enhancement=True
         )
         
-        print(f"\n✅ Dataset creation successful!")
+        print(f"\n Dataset creation successful!")
         for split, dataset in datasets.items():
             if dataset is not None:
                 print(f"   {split}: {len(dataset)} patches")

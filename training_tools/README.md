@@ -64,12 +64,12 @@ The system converts DroneDeploy's 7 RGB color classes into 4 landing-relevant cl
 5. **Exports to ONNX** for deployment
 
 ### Key Features
-- ✅ **Automatic data loading** from your DroneDeploy structure
-- ✅ **Smart RGB→class conversion** 
-- ✅ **Pre-trained weight loading** with automatic adaptation
-- ✅ **Memory-efficient training** with gradient clipping
-- ✅ **Comprehensive monitoring** with mIoU validation
-- ✅ **ONNX export** for deployment
+-  **Automatic data loading** from your DroneDeploy structure
+-  **Smart RGB→class conversion** 
+-  **Pre-trained weight loading** with automatic adaptation
+-  **Memory-efficient training** with gradient clipping
+-  **Comprehensive monitoring** with mIoU validation
+-  **ONNX export** for deployment
 
 ## File Structure
 

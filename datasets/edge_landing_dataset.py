@@ -290,7 +290,8 @@ class EdgeLandingDataset(Dataset):
             transforms.extend([
                 # Geometric transforms (critical for aerial views)
                 A.RandomRotate90(p=0.8),
-                A.Flip(p=0.7),
+                A.HorizontalFlip(p=0.5),
+                A.VerticalFlip(p=0.2),
                 A.ShiftScaleRotate(
                     shift_limit=0.1, 
                     scale_limit=0.3, 
@@ -343,7 +344,7 @@ class EdgeLandingDataset(Dataset):
             # Basic augmentation for validation/testing
             transforms.extend([
                 A.RandomRotate90(p=0.5),
-                A.Flip(p=0.5),
+                A.HorizontalFlip(p=0.5),
                 A.RandomBrightnessContrast(p=0.5),
             ])
         
@@ -615,7 +616,7 @@ if __name__ == "__main__":
             extreme_augmentation=True
         )
         
-        print(f"\n✅ Dataset creation successful!")
+        print(f"\n Dataset creation successful!")
         for split, dataset in datasets.items():
             print(f"   {split}: {len(dataset)} samples")
         

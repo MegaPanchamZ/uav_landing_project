@@ -245,7 +245,7 @@ def example_recovery_behavior():
             
             frame_count += 1
     
-    print(f"\n✅ Recovery behavior demonstration complete")
+    print(f"\n Recovery behavior demonstration complete")
 
 
 def main():

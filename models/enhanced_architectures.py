@@ -458,7 +458,7 @@ class DeepLabV3Plus(nn.Module):
             model_dict.update(pretrained_dict)
             self.model.load_state_dict(model_dict)
             
-            print(f"✅ Loaded pretrained DeepLabV3+ weights")
+            print(f" Loaded pretrained DeepLabV3+ weights")
         except Exception as e:
             print(f"⚠️ Could not load pretrained weights: {e}")
     
@@ -817,4 +817,4 @@ if __name__ == "__main__":
         if 'uncertainty' in output2:
             print(f"Uncertainty shape: {output2['uncertainty'].shape}")
     
-    print("✅ Model architecture tests passed!") 
+    print(" Model architecture tests passed!") 

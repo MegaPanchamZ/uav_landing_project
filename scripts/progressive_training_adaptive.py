@@ -434,7 +434,7 @@ class AdaptiveProgressiveTrainer:
         stage3_data = self.create_stage_dataset(3, "Semantic Drone", self.config['semantic_drone_path'], SemanticDroneDataset)
         model = self.train_stage(stage3_data, stage_num=3, pretrained_model=model)
         
-        print("\n🎯 Adaptive Progressive Training Complete!")
+        print("\n Adaptive Progressive Training Complete!")
         print("Models saved in:", self.config['output_dir'])
         
         wandb.finish()

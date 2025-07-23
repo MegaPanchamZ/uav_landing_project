@@ -129,7 +129,7 @@ class FixedTrainer:
         print("🔧 Fixed UAV Landing Training")
         print("=" * 50)
         print(f"💾 Device: {self.device}")
-        print(f"🎯 Strategy: {config['strategy']}")
+        print(f" Strategy: {config['strategy']}")
         
         # Initialize wandb
         wandb.init(
@@ -336,13 +336,13 @@ class FixedTrainer:
                         copied_layers += 1
         
         new_model.load_state_dict(new_state_dict, strict=False)
-        print(f"   ✅ Copied {copied_layers} layers from pretrained model")
+        print(f"    Copied {copied_layers} layers from pretrained model")
         
         return new_model
     
     def train_single_dataset(self, dataset_name: str, dataset_path: str, dataset_class):
         """Train on a single dataset to establish baseline."""
-        print(f"\n🎯 Training {dataset_name} (Individual)")
+        print(f"\n Training {dataset_name} (Individual)")
         
         # Create dataset
         dataset_info = self.create_dataset(dataset_name, dataset_path, dataset_class)
@@ -495,7 +495,7 @@ class FixedTrainer:
     
     def run_individual_training(self):
         """Train each dataset individually to establish baselines."""
-        print("\n🎯 Individual Dataset Training Strategy")
+        print("\n Individual Dataset Training Strategy")
         print("=" * 50)
         
         datasets_config = {
@@ -526,7 +526,7 @@ class FixedTrainer:
                     'best_iou': best_iou,
                     'model': model
                 }
-                print(f"✅ {dataset_name}: Best IoU = {best_iou:.4f}")
+                print(f" {dataset_name}: Best IoU = {best_iou:.4f}")
             except Exception as e:
                 print(f"❌ Failed to train {dataset_name}: {e}")
                 results[dataset_name] = {'error': str(e)}
@@ -539,24 +539,24 @@ class FixedTrainer:
         print("=" * 50)
         
         # Stage 1: Semantic Drone (largest, most general)
-        print("🎯 Stage 1: Semantic Drone (Base)")
+        print(" Stage 1: Semantic Drone (Base)")
         dataset_info = self.create_dataset('Semantic Drone', self.config['semantic_drone_path'], SemanticDroneDataset)
         model, criterion = self.create_model(dataset_info['in_channels'], dataset_info['class_weights'])
         model = self.train_stage(model, dataset_info, criterion, stage_num=1, stage_name='semantic_drone')
         
         # Stage 2: UDD (medium size)
-        print("🎯 Stage 2: UDD (Transfer)")
+        print(" Stage 2: UDD (Transfer)")
         dataset_info = self.create_dataset('UDD', self.config['udd_path'], UDDDataset)
         model, criterion = self.create_model(dataset_info['in_channels'], dataset_info['class_weights'], model)
         model = self.train_stage(model, dataset_info, criterion, stage_num=2, stage_name='udd')
         
         # Stage 3: DroneDeploy (smallest, most specific)
-        print("🎯 Stage 3: DroneDeploy (Fine-tune)")
+        print(" Stage 3: DroneDeploy (Fine-tune)")
         dataset_info = self.create_dataset('DroneDeploy', self.config['drone_deploy_path'], DroneDeployDataset)
         model, criterion = self.create_model(dataset_info['in_channels'], dataset_info['class_weights'], model)
         model = self.train_stage(model, dataset_info, criterion, stage_num=3, stage_name='dronedeploy')
         
-        print("✅ Reverse progressive training completed!")
+        print(" Reverse progressive training completed!")
         return model
     
     def train_stage(self, model, dataset_info, criterion, stage_num, stage_name):
@@ -652,7 +652,7 @@ def main():
     trainer = FixedTrainer(config)
     
     if args.strategy == 'individual' or args.strategy == 'both':
-        print("🎯 Running individual dataset training...")
+        print(" Running individual dataset training...")
         individual_results = trainer.run_individual_training()
         
         print("\n📊 INDIVIDUAL TRAINING RESULTS:")

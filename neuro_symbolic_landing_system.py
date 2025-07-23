@@ -91,7 +91,7 @@ class NeuroSymbolicLandingSystem:
         self.neural_model = self._load_neural_model()
         self.scallop_engine = self._load_scallop_engine()
         
-        print(f"✅ System initialized successfully")
+        print(f" System initialized successfully")
     
     def _get_default_class_info(self) -> Dict[int, Dict[str, Any]]:
         """Get default 24-class semantic information."""
@@ -152,7 +152,7 @@ class NeuroSymbolicLandingSystem:
         model = model.to(self.device)
         model.eval()
         
-        print(f"✅ Neural model loaded: {sum(p.numel() for p in model.parameters()):,} parameters")
+        print(f" Neural model loaded: {sum(p.numel() for p in model.parameters()):,} parameters")
         
         return model
     
@@ -176,7 +176,7 @@ class NeuroSymbolicLandingSystem:
             # Add rules to context
             ctx.add_program(rules)
             
-            print(f"✅ Scallop engine loaded with rules from {self.scallop_rules_path}")
+            print(f" Scallop engine loaded with rules from {self.scallop_rules_path}")
             
             return ctx
             
@@ -247,7 +247,7 @@ class NeuroSymbolicLandingSystem:
                 'symbolic_results': symbolic_results
             }
         
-        print(f"✅ Processing complete: {results['processing_time']:.2f}s")
+        print(f" Processing complete: {results['processing_time']:.2f}s")
         print(f"   Found {len(results['landing_recommendations'])} landing zones")
         
         return results

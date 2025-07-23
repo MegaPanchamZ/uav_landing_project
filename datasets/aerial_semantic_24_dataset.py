@@ -402,7 +402,7 @@ def test_dataset():
             crops_per_image=4
         )
         
-        print(f"\n✅ Dataset test successful!")
+        print(f"\n Dataset test successful!")
         print(f"   Dataset size: {len(dataset)} samples")
         
         # Test sample loading
@@ -421,7 +421,7 @@ def test_dataset():
         
         # Landing relevance stats
         relevance_stats = dataset.get_landing_relevant_stats()
-        print(f"\n🎯 Landing Relevance Distribution:")
+        print(f"\n Landing Relevance Distribution:")
         for relevance, percentage in relevance_stats.items():
             print(f"   {relevance}: {percentage:.2f}%")
         

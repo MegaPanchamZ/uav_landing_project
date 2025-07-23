@@ -154,7 +154,7 @@ class NeuroSymbolicDemo:
         print("🔗 Initializing Scallop reasoning engine...")
         self.ns_system = NeuroSymbolicLandingSystem()
         
-        print("✅ Neuro-Symbolic system initialized!")
+        print(" Neuro-Symbolic system initialized!")
     
     def _load_trained_model(self) -> MMSegBiSeNetV2:
         """Load our trained semantic model."""
@@ -164,7 +164,7 @@ class NeuroSymbolicDemo:
             checkpoint = torch.load('outputs/natural_semantic_best_fixed.pth', map_location=self.device)
             model.load_state_dict(checkpoint['model_state_dict'])
             model.eval()
-            print("✅ Loaded trained semantic model")
+            print(" Loaded trained semantic model")
         except FileNotFoundError:
             print("⚠️ Trained model not found, using mock model")
             return MockSemanticModel()
@@ -239,12 +239,12 @@ class NeuroSymbolicDemo:
         reasoning.append("\n🧠 SCALLOP LOGICAL REASONING:")
         
         if safe_pct >= 30:
-            reasoning.append("  ✅ Rule 1: safe_area_percentage >= 30% → LANDING_FEASIBLE")
+            reasoning.append("   Rule 1: safe_area_percentage >= 30% → LANDING_FEASIBLE")
         else:
             reasoning.append("  ❌ Rule 1: safe_area_percentage < 30% → LANDING_RISKY")
         
         if dangerous_pct <= 20:
-            reasoning.append("  ✅ Rule 2: dangerous_area_percentage <= 20% → ACCEPTABLE_RISK")
+            reasoning.append("   Rule 2: dangerous_area_percentage <= 20% → ACCEPTABLE_RISK")
         else:
             reasoning.append("  ⚠️ Rule 2: dangerous_area_percentage > 20% → HIGH_RISK")
         
@@ -254,7 +254,7 @@ class NeuroSymbolicDemo:
             water_pct = (water_pixels / total_pixels) * 100
             reasoning.append(f"  🌊 Rule 3: water_present = True ({water_pct:.1f}%) → AVOID_WATER_PROXIMITY")
         else:
-            reasoning.append("  ✅ Rule 3: water_present = False → NO_WATER_CONSTRAINTS")
+            reasoning.append("   Rule 3: water_present = False → NO_WATER_CONSTRAINTS")
         
         # Obstacle density
         obstacle_pixels = (semantic_map == 22).sum()
@@ -262,7 +262,7 @@ class NeuroSymbolicDemo:
             obstacle_pct = (obstacle_pixels / total_pixels) * 100
             reasoning.append(f"  🚧 Rule 4: obstacle_density = {obstacle_pct:.1f}% → OBSTACLE_AVOIDANCE_REQUIRED")
         else:
-            reasoning.append("  ✅ Rule 4: obstacle_density = 0% → CLEAR_AIRSPACE")
+            reasoning.append("   Rule 4: obstacle_density = 0% → CLEAR_AIRSPACE")
         
         return reasoning
     
@@ -379,7 +379,7 @@ class NeuroSymbolicDemo:
             cv2.putText(overlay, f'{i+1}', (x-10, y+5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
         
         axes[1,0].imshow(overlay)
-        axes[1,0].set_title('🎯 Recommended Landing Zones')
+        axes[1,0].set_title(' Recommended Landing Zones')
         axes[1,0].axis('off')
         
         # Statistics
@@ -403,14 +403,14 @@ class NeuroSymbolicDemo:
         print("💾 Visualization saved to outputs/neuro_symbolic_analysis.png")
         
         # Print summary
-        print(f"\n🎯 LANDING ANALYSIS SUMMARY")
+        print(f"\n LANDING ANALYSIS SUMMARY")
         print(f"{'='*50}")
         print(f"📍 Recommendation: {analysis.landing_recommendation}")
-        print(f"🎯 Confidence: {analysis.confidence:.1%}")
-        print(f"✅ Safe Area: {analysis.safe_area_percentage:.1f}%")
+        print(f" Confidence: {analysis.confidence:.1%}")
+        print(f" Safe Area: {analysis.safe_area_percentage:.1f}%")
         print(f"⚠️ Caution Area: {analysis.caution_area_percentage:.1f}%")
         print(f"❌ Dangerous Area: {analysis.dangerous_area_percentage:.1f}%")
-        print(f"🎯 Landing Zones Found: {len(analysis.best_landing_zones)}")
+        print(f" Landing Zones Found: {len(analysis.best_landing_zones)}")
         
         if analysis.best_landing_zones:
             print("\n🏆 Top Landing Zones:")

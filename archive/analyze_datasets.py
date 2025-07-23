@@ -183,7 +183,7 @@ def analyze_udd_labels():
 def create_staged_mapping():
     """Create the staged fine-tuning class mapping strategy."""
     
-    print(f"\n🎯 STEP 3: Staged Fine-Tuning Strategy")
+    print(f"\n STEP 3: Staged Fine-Tuning Strategy")
     print("=" * 40)
     
     # Stage 1: DroneDeploy (7 classes) - General aerial view

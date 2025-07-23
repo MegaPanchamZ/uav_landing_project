@@ -114,8 +114,8 @@ class OptimizedTrainer:
             preprocess_on_init=True
         )
 
-        print(f"  ✅ Training samples: {len(train_dataset)}")
-        print(f"  ✅ Validation samples: {len(val_dataset)}")
+        print(f"   Training samples: {len(train_dataset)}")
+        print(f"   Validation samples: {len(val_dataset)}")
 
         # Optimized DataLoaders
         train_loader = DataLoader(
@@ -212,7 +212,7 @@ class OptimizedTrainer:
                 best_iou = val_metrics.get('miou', 0.0)
                 save_path = output_dir / f"optimized_{self.config['model_type']}_best.pth"
                 torch.save(model.state_dict(), save_path)
-                print(f"  ✅ New best model saved to {save_path} (mIoU: {best_iou:.4f})")
+                print(f"   New best model saved to {save_path} (mIoU: {best_iou:.4f})")
 
         wandb.finish()
         print("\n🎉 Optimized training complete!")

@@ -401,8 +401,8 @@ if __name__ == "__main__":
     # Test ONNX conversion
     try:
         convert_to_onnx(model, "edge_landing_test.onnx")
-        print("✅ ONNX conversion successful")
+        print(" ONNX conversion successful")
     except Exception as e:
         print(f"❌ ONNX conversion failed: {e}")
     
-    print("\n🎯 Edge model testing complete!") 
+    print("\n Edge model testing complete!") 

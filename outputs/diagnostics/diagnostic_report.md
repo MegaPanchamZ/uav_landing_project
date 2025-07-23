@@ -1,6 +1,6 @@
 # Training Failure Diagnostic Report
 ## DroneDeploy Dataset
-✅ **Data Loading:** OK
+ **Data Loading:** OK
 ### Class Distribution:
 - Class 0: 78.94%
 - Class 1: 8.77%
@@ -19,7 +19,7 @@
 - Overall Accuracy: 0.3579
 
 ## UDD Dataset
-✅ **Data Loading:** OK
+ **Data Loading:** OK
 ### Class Distribution:
 - Class 0: 17.79%
 - Class 1: 13.40%
@@ -38,7 +38,7 @@
 - Overall Accuracy: 0.0095
 
 ## Semantic Drone Dataset
-✅ **Data Loading:** OK
+ **Data Loading:** OK
 ### Class Distribution:
 - Class 0: 0.36%
 - Class 1: 67.64%

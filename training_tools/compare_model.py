@@ -42,7 +42,7 @@ class ModelComparator:
         self.input_name = self.session.get_inputs()[0].name
         self.output_name = self.session.get_outputs()[0].name
         
-        print(f"✅ Model loaded: {self.model_path}")
+        print(f" Model loaded: {self.model_path}")
         
     def preprocess_image(self, image, target_size=(512, 512)):
         """Preprocess image for the model."""
@@ -230,7 +230,7 @@ F1-Scores:
         
         if save_path:
             plt.savefig(save_path, dpi=150, bbox_inches='tight')
-            print(f"✅ Comparison saved: {save_path}")
+            print(f" Comparison saved: {save_path}")
         else:
             plt.show()
             
@@ -304,7 +304,7 @@ def main():
     metrics = comparator.compute_metrics(ground_truth, prediction)
     
     # Print results
-    print(f"\\n🎯 Results:")
+    print(f"\\n Results:")
     print(f"Overall Accuracy: {metrics['accuracy']:.1%}")
     print(f"Mean IoU: {metrics['mean_iou']:.1%}")
     print("\\nPer-class IoU:")
@@ -316,7 +316,7 @@ def main():
     print("\\n🎨 Creating comparison...")
     comparator.visualize_comparison(image, ground_truth, prediction, metrics, args.save)
     
-    print("\\n✅ Comparison complete!")
+    print("\\n Comparison complete!")
 
 if __name__ == "__main__":
     main()

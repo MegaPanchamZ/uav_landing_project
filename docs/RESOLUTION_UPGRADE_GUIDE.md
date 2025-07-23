@@ -414,7 +414,7 @@ def train_high_resolution_model(base_model_path, target_resolution=768, epochs=2
         target_resolution
     )
     
-    print(f"✅ High resolution model saved:")
+    print(f" High resolution model saved:")
     print(f"   PyTorch: {output_path}")
     print(f"   ONNX: trained_models/uav_landing_{target_resolution}x{target_resolution}.onnx")
 
@@ -471,7 +471,7 @@ class UAVLandingDetector:
         # Find best matching model
         for model_res, model_path in model_options:
             if Path(model_path).exists() and target_res <= model_res * 1.5:
-                print(f"🎯 Selected model: {model_path} for {resolution} resolution")
+                print(f" Selected model: {model_path} for {resolution} resolution")
                 return model_path
         
         # Fallback to default
@@ -500,7 +500,7 @@ class UAVLandingDetector:
 - **Embedded Systems**: Use 256×256 with quantized models
 - **High-End Workstations**: 1024×1024 for maximum quality
 
-## 🎯 Quick Implementation Examples
+##  Quick Implementation Examples
 
 ### Racing Drone Setup (Ultra-Fast)
 ```python
@@ -515,7 +515,7 @@ racing_system = UAVLandingSystem(
 # Process at maximum speed
 result = racing_system.process_frame(image, altitude=3.0)
 if result.processing_time < 20:  # < 20ms for 50+ FPS
-    print(f"✅ Racing ready: {result.processing_time:.1f}ms")
+    print(f" Racing ready: {result.processing_time:.1f}ms")
 ```
 
 ### Research Setup (Maximum Quality)
@@ -547,7 +547,7 @@ result = commercial_system.process_frame(image, altitude=6.0, enable_tracing=Tru
 
 # Quality checks for commercial use
 if result.confidence > 0.7 and result.processing_time < 100:
-    print("✅ Commercial grade detection ready")
+    print(" Commercial grade detection ready")
     execute_landing_sequence(result)
 else:
     print("⚠️ Quality below commercial threshold, aborting")
@@ -658,7 +658,7 @@ print('High-res model loaded!')
 "
 ```
 
-## 🎯 Recommendations by Use Case
+##  Recommendations by Use Case
 
 - **🏎️ Drone Racing**: Path 1 with 256×256 resolution
 - **🏢 Commercial UAV**: Path 2 with auto-profile selection  

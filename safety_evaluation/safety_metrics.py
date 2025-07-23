@@ -474,7 +474,7 @@ SAFETY RECOMMENDATIONS:
             report += "⚠️  POOR UNCERTAINTY CALIBRATION - Uncertainty estimation needs improvement\n"
         
         if critical_error_rate <= 0.005 and safety_score >= 0.8:
-            report += "✅ SAFETY REQUIREMENTS MET - Model ready for careful deployment\n"
+            report += " SAFETY REQUIREMENTS MET - Model ready for careful deployment\n"
         
         report += "\n═══════════════════════════════════════════════\n"
         
@@ -502,7 +502,7 @@ SAFETY RECOMMENDATIONS:
         with open(output_path / 'safety_report.txt', 'w') as f:
             f.write(report)
         
-        print(f"✅ Evaluation results saved to {output_path}")
+        print(f" Evaluation results saved to {output_path}")
 
 
 if __name__ == "__main__":
@@ -530,7 +530,7 @@ if __name__ == "__main__":
     # Compute metrics
     metrics = evaluator.compute_metrics()
     
-    print("✅ Computed metrics:")
+    print(" Computed metrics:")
     for key, value in metrics.items():
         print(f"   {key}: {value:.4f}")
     
@@ -538,4 +538,4 @@ if __name__ == "__main__":
     report = evaluator.generate_safety_report()
     print("\n" + report)
     
-    print("✅ Safety evaluator test completed!") 
+    print(" Safety evaluator test completed!") 

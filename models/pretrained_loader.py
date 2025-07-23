@@ -265,7 +265,7 @@ class PretrainedModelLoader:
                 info = details['info']
                 if info['architecture'] == arch_pref and info['dataset'] == dataset_pref:
                     if self.verbose:
-                        print(f"🎯 Auto-selected: {name}")
+                        print(f" Auto-selected: {name}")
                     return details['path']
         
         # Fallback to first available
@@ -544,7 +544,7 @@ def load_cityscapes_bisenetv2(
     if cityscapes_models:
         # Use the first Cityscapes BiSeNetV2 model found
         best_model = cityscapes_models[0]
-        print(f"🎯 Using Cityscapes BiSeNetV2: {best_model}")
+        print(f" Using Cityscapes BiSeNetV2: {best_model}")
     else:
         best_model = None
         print("⚠️ No Cityscapes BiSeNetV2 found, using auto-selection")

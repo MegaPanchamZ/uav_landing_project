@@ -504,7 +504,7 @@ class MMSegBiSeNetV2(nn.Module):
         self.load_state_dict(model_state, strict=False)
         
         # Print summary
-        print(f"✅ Pretrained weight loading completed:")
+        print(f" Pretrained weight loading completed:")
         print(f"   Loaded layers: {len(loaded_layers)}")
         print(f"   Adapted layers: {len(adapted_layers)}")
         print(f"   Skipped layers: {len(skipped_layers)}")
@@ -581,4 +581,4 @@ if __name__ == "__main__":
         for i, aux in enumerate(outputs['aux']):
             print(f"     Aux {i}: {aux.shape}")
     
-    print("✅ MMSeg BiSeNetV2 test completed!") 
+    print(" MMSeg BiSeNetV2 test completed!") 

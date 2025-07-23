@@ -535,7 +535,7 @@ class LandingSite:
     class_name: str                # Human-readable class name
 ```
 
-## 🎯 Landing Classes
+##  Landing Classes
 
 ### Class Definitions
 

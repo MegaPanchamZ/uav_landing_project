@@ -256,7 +256,7 @@ def test_classical_detector():
                 print(f"   Best zone area: {best_zone['area']} pixels")
                 print(f"   Safety issues: {best_zone['safety_reasons']}")
     
-    print(f"\\n✅ Classical detector test completed!")
+    print(f"\\n Classical detector test completed!")
     print(f"   Advantages:")
     print(f"   - Fast processing (~1-5ms)")
     print(f"   - No training required")

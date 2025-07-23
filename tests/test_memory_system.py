@@ -346,7 +346,7 @@ def run_interactive_demo():
             elif key == ord('4'):
                 current_scenario = "moving_target"
                 frame_count = 0
-                print("🎯 Switched to: Moving target")
+                print(" Switched to: Moving target")
             elif key == ord('5'):
                 current_scenario = "multiple_zones"
                 frame_count = 0
@@ -377,7 +377,7 @@ def run_interactive_demo():
     # Save memory
     detector.save_memory()
     cv2.destroyAllWindows()
-    print("\n✅ Interactive demo completed")
+    print("\n Interactive demo completed")
 
 
 def main():

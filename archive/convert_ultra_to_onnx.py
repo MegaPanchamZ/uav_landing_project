@@ -80,7 +80,7 @@ def convert_ultra_to_onnx():
     model.load_state_dict(checkpoint)
     model.eval()
     
-    print("✅ Model loaded successfully")
+    print(" Model loaded successfully")
     print(f"📊 Model parameters: {sum(p.numel() for p in model.parameters()):,}")
     
     # Create dummy input
@@ -105,7 +105,7 @@ def convert_ultra_to_onnx():
         }
     )
     
-    print(f"✅ ONNX model saved: {output_path}")
+    print(f" ONNX model saved: {output_path}")
     
     # Test ONNX model
     try:
@@ -117,7 +117,7 @@ def convert_ultra_to_onnx():
         test_input = torch.randn(1, 3, 256, 256).numpy()
         result = session.run(None, {'input': test_input})
         
-        print(f"✅ ONNX model verified!")
+        print(f" ONNX model verified!")
         print(f"📊 Output shape: {result[0].shape}")
         
         # Speed test
@@ -131,7 +131,7 @@ def convert_ultra_to_onnx():
             times.append((time.time() - start) * 1000)
         
         avg_time = np.mean(times)
-        print(f"🎯 ONNX inference: {avg_time:.1f}ms ({1000/avg_time:.1f} FPS)")
+        print(f" ONNX inference: {avg_time:.1f}ms ({1000/avg_time:.1f} FPS)")
         
     except ImportError:
         print("⚠️  onnxruntime not available for verification")

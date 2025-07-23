@@ -194,7 +194,7 @@ Examples:
     
     # Show estimated output
     estimated_samples = generator.estimate_sample_count()
-    print(f"\n🎯 Estimated Output:")
+    print(f"\n Estimated Output:")
     print(f"   Total samples: {estimated_samples:,}")
     print(f"   Dataset multiplier: {estimated_samples/400:.1f}x")
     print(f"   Training samples: {int(estimated_samples * args.train_split):,}")
@@ -225,7 +225,7 @@ Examples:
             val_split=args.val_split
         )
         
-        print("\n✅ Dataset generation completed successfully!")
+        print("\n Dataset generation completed successfully!")
         
         # Test loading if requested
         if args.test_loading:
@@ -246,11 +246,11 @@ Examples:
                     if len(dataset) > 0:
                         # Test loading first sample
                         sample = dataset[0]
-                        print(f"   ✅ {split}: {len(dataset):,} samples, shape: {sample['image'].shape}")
+                        print(f"    {split}: {len(dataset):,} samples, shape: {sample['image'].shape}")
                     else:
                         print(f"   ⚠️ {split}: No samples found")
                 
-                print("✅ Dataset loading test passed!")
+                print(" Dataset loading test passed!")
                 
             except Exception as e:
                 print(f"❌ Dataset loading test failed: {e}")

@@ -2,7 +2,7 @@
 
 A complete **neuro-symbolic UAV landing detection system** combining fine-tuned deep learning with rule-based reasoning for safe, reliable autonomous landing.
 
-## 🎯 Quick Start (Plug & Play)
+##  Quick Start (Plug & Play)
 
 ### Installation
 ```bash
@@ -169,7 +169,7 @@ if result.trace:
     print(f"  Rules applied: {result.trace.symbolic_rules_applied}")
     print(f"  Safety checks: {result.trace.symbolic_safety_checks}")
     
-    print("\n🎯 INTEGRATION:")
+    print("\n INTEGRATION:")
     print(f"  Final score: {result.trace.neuro_symbolic_score:.3f}")
     print(f"  Decision weights: {result.trace.decision_weights}")
     
@@ -259,7 +259,7 @@ system_onnx = UAVLandingSystem("trained_models/ultra_fast_uav_landing.onnx")  # 
 - **`MEDIUM`**: Some concerns present, proceed with monitoring
 - **`HIGH`**: Significant safety concerns, abort recommended
 
-## 🎯 Real-World Usage Examples
+##  Real-World Usage Examples
 
 ### Drone Racing/Competition
 ```python
@@ -433,14 +433,14 @@ python tests/test_system.py
 python tests/integration/test_udd_neuro_symbolic.py
 ```
 
-## 🎯 Ready to Deploy!
+##  Ready to Deploy!
 
 Your UAV landing system is now production-ready with:
-- ✅ **Plug & Play Interface**: Simple integration into any UAV system
-- ✅ **Neuro-Symbolic Intelligence**: Best of neural networks + rule-based reasoning  
-- ✅ **Full Traceability**: Complete decision path logging and explainability
-- ✅ **Safety-First Design**: Risk assessment and abort mechanisms
-- ✅ **Real-World Validated**: Tested on actual UAV imagery
-- ✅ **Production Optimized**: Error handling, logging, and performance monitoring
+-  **Plug & Play Interface**: Simple integration into any UAV system
+-  **Neuro-Symbolic Intelligence**: Best of neural networks + rule-based reasoning  
+-  **Full Traceability**: Complete decision path logging and explainability
+-  **Safety-First Design**: Risk assessment and abort mechanisms
+-  **Real-World Validated**: Tested on actual UAV imagery
+-  **Production Optimized**: Error handling, logging, and performance monitoring
 
 Start landing safely with just 3 lines of code! 🚁🎯

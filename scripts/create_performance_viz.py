@@ -49,7 +49,7 @@ def create_performance_visualization():
     ax3.scatter(speeds, accuracy, s=[200, 200, 400], c=colors, alpha=0.7, edgecolors='black', linewidth=2)
     ax3.set_xlabel('Inference Time (ms)', fontweight='bold')
     ax3.set_ylabel('Accuracy (IoU %)', fontweight='bold')
-    ax3.set_title('🎯 Accuracy vs Speed Trade-off', fontweight='bold')
+    ax3.set_title(' Accuracy vs Speed Trade-off', fontweight='bold')
     ax3.set_xscale('log')
     ax3.grid(True, alpha=0.3)
     
@@ -84,7 +84,7 @@ def create_performance_visualization():
     plt.savefig('visualizations/performance_analysis.png', dpi=300, bbox_inches='tight')
     plt.savefig('visualizations/performance_analysis.pdf', bbox_inches='tight')
     
-    print("✅ Performance analysis saved to visualizations/performance_analysis.png")
+    print(" Performance analysis saved to visualizations/performance_analysis.png")
     return fig
 
 def create_inference_demo():
@@ -189,7 +189,7 @@ def create_inference_demo():
     plt.subplots_adjust(bottom=0.1)
     plt.savefig('visualizations/segmentation_demo.png', dpi=300, bbox_inches='tight')
     
-    print("✅ Segmentation demo saved to visualizations/segmentation_demo.png")
+    print(" Segmentation demo saved to visualizations/segmentation_demo.png")
     return fig
 
 if __name__ == "__main__":
@@ -202,7 +202,7 @@ if __name__ == "__main__":
     print("🎨 Creating segmentation demo...")
     demo_fig = create_inference_demo()
     
-    print("✅ All visualizations completed!")
+    print(" All visualizations completed!")
     
     # Show if interactive
     import sys

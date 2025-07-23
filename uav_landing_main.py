@@ -349,7 +349,7 @@ def main():
     detector.save_memory()
     print("💾 Memory state saved")
     
-    print("✅ UAV Landing System shutdown complete")
+    print(" UAV Landing System shutdown complete")
 
 
 if __name__ == "__main__":

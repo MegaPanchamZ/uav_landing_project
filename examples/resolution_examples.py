@@ -68,12 +68,12 @@ def racing_drone_example():
             if process_time > 20:
                 print(f"    ⚠️ Too slow for racing! ({process_time:.1f}ms > 20ms)")
         
-        print(f"✅ Racing configuration: 256×256 for maximum speed\n")
+        print(f" Racing configuration: 256×256 for maximum speed\n")
     
     except Exception as e:
         print(f"❌ Racing example failed: {e}")
         print("⚠️ Using placeholder mode - model may not be available")
-        print("✅ Racing configuration: 256×256 for maximum speed\n")
+        print(" Racing configuration: 256×256 for maximum speed\n")
 
 def commercial_uav_example():
     """Example: Commercial UAV needs balanced approach"""
@@ -105,20 +105,20 @@ def commercial_uav_example():
         
         # Commercial needs good balance of speed and accuracy
         if result.processing_time < 100 and result.confidence > 0.3:
-            print(f"✅ Commercial ready: Good balance of speed and quality")
+            print(f" Commercial ready: Good balance of speed and quality")
         else:
             print(f"⚠️ Consider adjusting parameters for commercial use")
         
     except Exception as e:
         print(f"❌ Commercial example failed: {e}")
         print("⚠️ Using placeholder mode - model may not be available")
-        print("✅ Commercial configuration: 512×512 for balanced performance")
+        print(" Commercial configuration: 512×512 for balanced performance")
     
     print()
 
 def precision_landing_example():
     """Example: Precision landing needs high quality"""
-    print("🎯 PRECISION LANDING EXAMPLE")
+    print(" PRECISION LANDING EXAMPLE")
     print("-" * 35)
     
     try:
@@ -150,12 +150,12 @@ def precision_landing_example():
             if result.trace.safety_recommendations:
                 print(f"  💡 Recommendations: {result.trace.safety_recommendations[:1][0] if result.trace.safety_recommendations else 'None'}")
         
-        print(f"✅ Precision configuration: 768×768 for high accuracy")
+        print(f" Precision configuration: 768×768 for high accuracy")
         
     except Exception as e:
         print(f"❌ Precision example failed: {e}")
         print("⚠️ Using placeholder mode - model may not be available")
-        print("✅ Precision configuration: 768×768 for high accuracy")
+        print(" Precision configuration: 768×768 for high accuracy")
     
     print()
 
@@ -192,7 +192,7 @@ def research_analysis_example():
             print(f"     Rules applied: {len(result.trace.symbolic_rules_applied)}")
             print(f"     Safety checks: {len(result.trace.symbolic_safety_checks)}")
             
-            print(f"  🎯 Decision fusion:")
+            print(f"   Decision fusion:")
             print(f"     Final score: {result.trace.neuro_symbolic_score:.4f}")
             print(f"     Risk level: {result.trace.risk_level}")
             
@@ -200,12 +200,12 @@ def research_analysis_example():
             trace_data = result.trace.to_dict()
             print(f"  💾 Trace data: {len(str(trace_data))} characters of analysis")
         
-        print(f"✅ Research configuration: 1024×1024 for maximum detail")
+        print(f" Research configuration: 1024×1024 for maximum detail")
         
     except Exception as e:
         print(f"❌ Research example failed: {e}")
         print("⚠️ Using placeholder mode - model may not be available")
-        print("✅ Research configuration: 1024×1024 for maximum detail")
+        print(" Research configuration: 1024×1024 for maximum detail")
     
     print()
 
@@ -292,7 +292,7 @@ def performance_comparison():
 
 def convenience_function_examples():
     """Examples using the convenience function with different resolutions"""
-    print("🎯 CONVENIENCE FUNCTION EXAMPLES")
+    print(" CONVENIENCE FUNCTION EXAMPLES")
     print("-" * 40)
     
     image = create_demo_image()
@@ -349,11 +349,11 @@ def main():
     # Convenience function examples
     convenience_function_examples()
     
-    print("🎯 SUMMARY & RECOMMENDATIONS")
+    print(" SUMMARY & RECOMMENDATIONS")
     print("-" * 35)
     print("• 🏎️ Racing/Real-time: Use 256×256 for maximum speed")
     print("• 🏢 Commercial/General: Use 512×512 for balanced performance")
-    print("• 🎯 Precision/Mapping: Use 768×768 for high accuracy")  
+    print("•  Precision/Mapping: Use 768×768 for high accuracy")  
     print("• 🔬 Research/Analysis: Use 1024×1024 for maximum detail")
     print()
     print("📖 For complete configuration details, see:")

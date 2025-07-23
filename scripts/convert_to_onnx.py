@@ -275,7 +275,7 @@ def convert_model(pth_path: str, output_path: str, input_size: tuple = (512, 512
             new_state_dict[name] = v
         
         model.load_state_dict(new_state_dict, strict=False)
-        print("✅ Model weights loaded successfully")
+        print(" Model weights loaded successfully")
         
     except Exception as e:
         print(f"⚠️  Could not load weights: {e}")
@@ -290,7 +290,7 @@ def convert_model(pth_path: str, output_path: str, input_size: tuple = (512, 512
     # Test model
     with torch.no_grad():
         output = model(dummy_input)
-        print(f"✅ Model test successful, output shape: {output.shape}")
+        print(f" Model test successful, output shape: {output.shape}")
     
     # Export to ONNX
     torch.onnx.export(
@@ -308,7 +308,7 @@ def convert_model(pth_path: str, output_path: str, input_size: tuple = (512, 512
         }
     )
     
-    print(f"✅ Model exported to: {output_path}")
+    print(f" Model exported to: {output_path}")
     
     # Verify ONNX model
     try:
@@ -323,7 +323,7 @@ def convert_model(pth_path: str, output_path: str, input_size: tuple = (512, 512
         test_input = np.random.randn(1, 3, input_size[0], input_size[1]).astype(np.float32)
         result = session.run([output_name], {input_name: test_input})
         
-        print(f"✅ ONNX model verification successful")
+        print(f" ONNX model verification successful")
         print(f"   Input shape: {test_input.shape}")
         print(f"   Output shape: {result[0].shape}")
         

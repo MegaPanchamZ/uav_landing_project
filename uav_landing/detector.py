@@ -129,7 +129,7 @@ class UAVLandingDetector:
         self.last_raw_output = None
         self.last_confidence_map = None
         
-        print(f"✅ UAV Landing Detector initialized")
+        print(f" UAV Landing Detector initialized")
         print(f"   Resolution: {input_resolution}")
         print(f"   Memory: {'enabled' if enable_memory else 'disabled'}")
         print(f"   Model: {self.model_path.name if self.model_path.exists() else 'placeholder'}")
@@ -154,7 +154,7 @@ class UAVLandingDetector:
             self.input_name = self.session.get_inputs()[0].name
             self.output_name = self.session.get_outputs()[0].name
             
-            print(f"✅ Model loaded: {self.model_path.name}")
+            print(f" Model loaded: {self.model_path.name}")
             print(f"   Provider: {self.session.get_providers()[0]}")
             
         except Exception as e:

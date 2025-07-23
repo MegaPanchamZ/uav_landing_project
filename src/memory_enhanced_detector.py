@@ -571,4 +571,4 @@ if __name__ == "__main__":
     detector.save_memory()
     
     cv2.destroyAllWindows()
-    print("✅ Memory-enhanced demo completed")
+    print(" Memory-enhanced demo completed")

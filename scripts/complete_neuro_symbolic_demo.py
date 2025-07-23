@@ -219,7 +219,7 @@ class NeuroSymbolicDemo:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.semantic_model = MockSemanticModel()
         self.reasoning_engine = LogicalReasoningEngine()
-        print("✅ Neuro-Symbolic system initialized!")
+        print(" Neuro-Symbolic system initialized!")
     
     def semantic_to_safety_zones(self, semantic_map: np.ndarray) -> np.ndarray:
         """Convert semantic predictions to safety zones."""
@@ -394,7 +394,7 @@ class NeuroSymbolicDemo:
             cv2.putText(overlay, f'{i+1}', (x-10, y+5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
         
         axes[1,1].imshow(overlay)
-        axes[1,1].set_title('🎯 Optimal Landing Zones')
+        axes[1,1].set_title(' Optimal Landing Zones')
         axes[1,1].axis('off')
         
         # Statistics pie chart
@@ -429,7 +429,7 @@ class NeuroSymbolicDemo:
         conclusions_text += "\n\nREASONING TRACE:\n" + "\n".join(analysis.reasoning_trace[:10])
         axes[2,2].text(0.05, 0.95, conclusions_text, transform=axes[2,2].transAxes, 
                       fontsize=8, verticalalignment='top', fontfamily='monospace')
-        axes[2,2].set_title('🎯 Final Decision')
+        axes[2,2].set_title(' Final Decision')
         axes[2,2].axis('off')
         
         plt.tight_layout()
@@ -437,19 +437,19 @@ class NeuroSymbolicDemo:
         print("💾 Visualization saved to outputs/complete_neuro_symbolic_analysis.png")
         
         # Print comprehensive summary
-        print(f"\n🎯 COMPLETE NEURO-SYMBOLIC ANALYSIS")
+        print(f"\n COMPLETE NEURO-SYMBOLIC ANALYSIS")
         print(f"{'='*60}")
         print(f"📍 Final Recommendation: {analysis.landing_recommendation}")
-        print(f"🎯 Confidence Level: {analysis.confidence:.1%}")
-        print(f"✅ Safe Area: {analysis.safe_area_percentage:.1f}%")
+        print(f" Confidence Level: {analysis.confidence:.1%}")
+        print(f" Safe Area: {analysis.safe_area_percentage:.1f}%")
         print(f"⚠️ Caution Area: {analysis.caution_area_percentage:.1f}%")
         print(f"❌ Dangerous Area: {analysis.dangerous_area_percentage:.1f}%")
-        print(f"🎯 Landing Zones Identified: {len(analysis.best_landing_zones)}")
+        print(f" Landing Zones Identified: {len(analysis.best_landing_zones)}")
         
         print(f"\n🧠 SCALLOP-STYLE LOGICAL REASONING:")
         print(f"📋 Facts Generated: {len(analysis.scallop_facts)}")
         print(f"🔧 Rules Applied: {len(analysis.scallop_rules)}")
-        print(f"🎯 Conclusions Reached: {len(analysis.scallop_conclusions)}")
+        print(f" Conclusions Reached: {len(analysis.scallop_conclusions)}")
         
         if analysis.best_landing_zones:
             print("\n🏆 Recommended Landing Zones:")
@@ -497,7 +497,7 @@ def main():
     """Run the complete neuro-symbolic demo."""
     print("🚁 UAV Landing - Complete Neuro-Symbolic Demo")
     print("=" * 70)
-    print("🎯 Demonstrating: Neural Perception + Symbolic Reasoning + Logical Decision Making")
+    print(" Demonstrating: Neural Perception + Symbolic Reasoning + Logical Decision Making")
     print("=" * 70)
     
     # Initialize system
@@ -546,7 +546,7 @@ def main():
     print("\n✨ Successfully demonstrated:")
     print("  🧠 Neural semantic understanding (24 natural classes)")
     print("  🔗 Symbolic safety mapping (semantic → safety zones)")
-    print("  🎯 Logical reasoning (Scallop-style rules)")
+    print("   Logical reasoning (Scallop-style rules)")
     print("  🤖 Integrated decision making")
     print("\n🏆 This solves the original training issues by working WITH the dataset structure!")
 

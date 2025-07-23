@@ -22,7 +22,7 @@ def test_fine_tuned_model():
     
     try:
         detector = UAVLandingDetector(model_path=model_path, enable_viz=False)
-        print("✅ Detector initialized successfully")
+        print(" Detector initialized successfully")
         
         # Test with a sample image
         test_image_path = "../datasets/drone_deploy_dataset_intermediate/dataset-medium/images/107f24d6e9_F1BE1D4184INSPIRE-ortho.tif"
@@ -46,7 +46,7 @@ def test_fine_tuned_model():
         
         # Analyze results
         if result:
-            print("\\n🎯 Detection Results:")
+            print("\\n Detection Results:")
             print(f"   Landing zones found: {len(result.get('landing_zones', []))}")
             print(f"   Safety score: {result.get('safety_score', 0):.1f}%")
             print(f"   Recommendation: {result.get('recommendation', 'Unknown')}")
@@ -58,7 +58,7 @@ def test_fine_tuned_model():
         else:
             print("❌ No results returned")
             
-        print("\\n✅ Fine-tuned model test completed!")
+        print("\\n Fine-tuned model test completed!")
         
     except Exception as e:
         print(f"❌ Test failed: {e}")

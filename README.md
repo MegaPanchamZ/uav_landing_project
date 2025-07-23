@@ -16,7 +16,7 @@
 | **Evaluation** | Basic IoU | **Safety-critical metrics** |
 | **Training Time** | 25 minutes | **Professional multi-hour training** |
 
-## 🎯 System Overview
+##  System Overview
 
 This system provides **safety-critical UAV landing detection** with:
 
@@ -217,7 +217,7 @@ uav_landing_project/
     └── SAFETY.md                   # Safety requirements
 ```
 
-## 🎯 Landing Class Mapping
+##  Landing Class Mapping
 
 ### Enhanced 4-Class System
 ```python
@@ -256,17 +256,17 @@ SEMANTIC_TO_LANDING = {
 - **Conservative Rate**: Tendency to predict more restrictive class
 - **Uncertainty Quality**: Calibration of confidence estimates
 
-## 🎯 Performance Benchmarks
+##  Performance Benchmarks
 
 | Metric | Original | Enhanced | Target |
 |--------|----------|----------|---------|
-| **Training Data** | 196 images | **400+** | ✅ |
-| **Model Parameters** | 333K | **6M+** | ✅ |
-| **Safety Score** | 0.59 | **0.85+** | ✅ |
-| **Mean IoU** | 0.59 | **0.72+** | ✅ |
-| **Critical Errors** | >1% | **<0.5%** | ✅ |
-| **Training Time** | 25 min | **2-4 hours** | ✅ |
-| **Model Size** | 1.3MB | **25MB** | ✅ |
+| **Training Data** | 196 images | **400+** |  |
+| **Model Parameters** | 333K | **6M+** |  |
+| **Safety Score** | 0.59 | **0.85+** |  |
+| **Mean IoU** | 0.59 | **0.72+** |  |
+| **Critical Errors** | >1% | **<0.5%** |  |
+| **Training Time** | 25 min | **2-4 hours** |  |
+| **Model Size** | 1.3MB | **25MB** |  |
 
 ## 🔄 ONNX Deployment
 

@@ -48,7 +48,7 @@ def check_model_specs():
         print(f"   Created test input: {test_input.shape}")
         
         output = session.run(None, {input_name: test_input})
-        print(f"   ✅ Inference successful!")
+        print(f"    Inference successful!")
         print(f"   Output shape: {output[0].shape}")
         
         return True

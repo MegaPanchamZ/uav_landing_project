@@ -72,7 +72,7 @@ class ScallopReasoningEngine:
             self.scallop_ctx.add_rule("landing_zone(x, y) :- safe_zone(x, y, conf), conf > 0.5")
             self.scallop_ctx.add_rule("landing_zone(x, y) :- safe_zone(x, y, conf), flat_area(x, y, flatness), conf > 0.3, flatness > 0.6")
             
-            logger.info("✅ Scallop relations and rules added successfully")
+            logger.info(" Scallop relations and rules added successfully")
             
         except Exception as e:
             logger.error(f"Failed to setup Scallop program: {e}")

@@ -101,7 +101,7 @@ def main():
         print("\n🔧 Testing Scallop Installation:")
         try:
             import scallopy
-            print("   ✅ Scallop imported successfully")
+            print("    Scallop imported successfully")
             
             # Test basic Scallop functionality  
             ctx = scallopy.Context()
@@ -110,7 +110,7 @@ def main():
             ctx.run()
             result = list(ctx.relation("test"))
             if result == [(1, 2)]:
-                print("   ✅ Scallop basic functionality verified")
+                print("    Scallop basic functionality verified")
             else:
                 print("   ⚠️  Scallop functionality issue")
                 
@@ -125,15 +125,15 @@ def main():
             use_scallop=True,
             enable_visualization=False
         )
-        print("   ✅ Enhanced detector initialized")
+        print("    Enhanced detector initialized")
         
         # Create test image
         print("\n🖼️  Creating synthetic test image...")
         test_image = create_synthetic_image()
-        print("   ✅ Test image created (512x512)")
+        print("    Test image created (512x512)")
         
         # Basic detection test
-        print("\n🎯 Basic Detection Test:")
+        print("\n Basic Detection Test:")
         result = detector.process_frame(test_image, altitude=15.0)
         
         print(f"   Status: {result.status}")
@@ -168,7 +168,7 @@ def main():
             result = detector.process_frame(test_image, altitude=alt)
             print(f"   Altitude {alt:4.1f}m: {result.status} (conf: {result.confidence:.3f})")
         
-        print("\n✅ Demo completed successfully!")
+        print("\n Demo completed successfully!")
         print("\n📋 System Summary:")
         print(f"   - Scallop Integration: {'✅' if hasattr(detector, 'scallop_available') and detector.scallop_available else '⚠️  (Mock)'}")
         print(f"   - Context Awareness: ✅")

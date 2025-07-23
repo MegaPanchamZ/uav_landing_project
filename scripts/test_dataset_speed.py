@@ -58,7 +58,7 @@ def test_dataset_speed():
             break
     
     crop_time = time.time() - start_time
-    print(f"   ✅ Random crops: {crop_time:.2f}s for 3 batches ({len(dataset_crops)} total samples)")
+    print(f"    Random crops: {crop_time:.2f}s for 3 batches ({len(dataset_crops)} total samples)")
     
     # Test 2: Full image resize (OLD - slow)
     print("\n2️⃣ Testing with full image resize...")
@@ -90,7 +90,7 @@ def test_dataset_speed():
             break
     
     resize_time = time.time() - start_time
-    print(f"   ✅ Full resize: {resize_time:.2f}s for 3 batches ({len(dataset_resize)} total samples)")
+    print(f"    Full resize: {resize_time:.2f}s for 3 batches ({len(dataset_resize)} total samples)")
     
     # Summary
     print(f"\n📊 Speed Comparison:")

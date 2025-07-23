@@ -112,7 +112,7 @@ scaler.update()
 - **Training**: Fewer epochs (6 + 8 vs 20+ each)
 - **Mixed Precision**: CUDA AMP for 2x speedup
 
-## 🎯 Training Configuration
+##  Training Configuration
 
 ### Stage 1: DroneDeploy Fine-tuning
 
@@ -270,7 +270,7 @@ Epoch 3: Loss ~1.2 → ~1.0
 Final: Loss ~0.7, IoU ~59%
 ```
 
-## 🎯 Advanced Topics
+##  Advanced Topics
 
 ### Custom Datasets
 

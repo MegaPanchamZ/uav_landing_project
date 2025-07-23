@@ -21,33 +21,33 @@ def test_imports():
         # Test core detector
         print("Testing UAVLandingDetector import...")
         from uav_landing_detector import UAVLandingDetector, LandingResult
-        print("✅ UAVLandingDetector imported successfully")
+        print(" UAVLandingDetector imported successfully")
         
         # Test Scallop reasoning engine (our consolidated version)
         print("Testing ScallopReasoningEngine import...")
         from scallop_reasoning_engine import ScallopReasoningEngine, ScallopLandingResult
-        print("✅ ScallopReasoningEngine imported successfully")
+        print(" ScallopReasoningEngine imported successfully")
         
         # Test enhanced detector with Scallop integration
         print("Testing EnhancedUAVDetector import...")
         from enhanced_uav_detector import EnhancedUAVDetector
-        print("✅ EnhancedUAVDetector imported successfully")
+        print(" EnhancedUAVDetector imported successfully")
         
         # Test that enhanced detector can be instantiated
         print("Testing EnhancedUAVDetector instantiation...")
         detector = EnhancedUAVDetector(context="commercial", use_scallop=True)
-        print(f"✅ EnhancedUAVDetector created with Scallop: {detector.scallop_available}")
+        print(f" EnhancedUAVDetector created with Scallop: {detector.scallop_available}")
         
         # Test Scallop engine directly
         print("Testing ScallopReasoningEngine instantiation...")
         scallop_engine = ScallopReasoningEngine(context="commercial")
-        print(f"✅ ScallopReasoningEngine created with context: {scallop_engine.context}")
+        print(f" ScallopReasoningEngine created with context: {scallop_engine.context}")
         
         print()
         print("🎉 ALL INTEGRATION TESTS PASSED!")
-        print("✅ Scallop consolidation successful")
-        print("✅ All imports working correctly")
-        print("✅ System ready for production use")
+        print(" Scallop consolidation successful")
+        print(" All imports working correctly")
+        print(" System ready for production use")
         
         return True
         

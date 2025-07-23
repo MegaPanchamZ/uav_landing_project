@@ -132,7 +132,7 @@ class FastTrainer:
         with open('stage1_history.json', 'w') as f:
             json.dump(history, f, indent=2)
         
-        print(f"✅ Stage 1 complete! Best val loss: {best_val_loss:.4f}")
+        print(f" Stage 1 complete! Best val loss: {best_val_loss:.4f}")
         return model, history
     
     def train_stage2(self, dataset_path, stage1_model_path, epochs=20, batch_size=4, lr=1e-5):
@@ -162,7 +162,7 @@ class FastTrainer:
         # Load Stage 1 model and adapt for Stage 2
         model = SimpleBiSeNetV2(num_classes=len(STAGE1_CLASSES))  # Original classes
         model.load_state_dict(torch.load(stage1_model_path, map_location='cpu'))
-        print(f"✅ Loaded Stage 1 model from {stage1_model_path}")
+        print(f" Loaded Stage 1 model from {stage1_model_path}")
         
         # Replace classifier for Stage 2 classes
         model.classifier = nn.Conv2d(256, len(STAGE2_CLASSES), 1)
@@ -259,7 +259,7 @@ class FastTrainer:
         with open('stage2_history.json', 'w') as f:
             json.dump(history, f, indent=2)
         
-        print(f"✅ Stage 2 complete! Best val loss: {best_val_loss:.4f}")
+        print(f" Stage 2 complete! Best val loss: {best_val_loss:.4f}")
         return model, history
     
     def export_to_onnx(self, model_path, output_path="uav_landing_model.onnx"):
@@ -290,7 +290,7 @@ class FastTrainer:
             }
         )
         
-        print(f"✅ Model exported to {output_path}")
+        print(f" Model exported to {output_path}")
         
         # Test ONNX model
         try:
@@ -298,7 +298,7 @@ class FastTrainer:
             session = ort.InferenceSession(output_path)
             input_name = session.get_inputs()[0].name
             output = session.run(None, {input_name: dummy_input.numpy()})
-            print(f"✅ ONNX model verified: {output[0].shape}")
+            print(f" ONNX model verified: {output[0].shape}")
         except ImportError:
             print("⚠️  ONNX Runtime not available for verification")
 
@@ -333,7 +333,7 @@ def main():
         if stage2_model is not None:
             # Export final model
             trainer.export_to_onnx("stage2_best_model.pth", "uav_landing_detector.onnx")
-            print("✅ Staged training completed successfully!")
+            print(" Staged training completed successfully!")
         else:
             print("❌ Stage 2 training failed")
     else:

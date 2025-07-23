@@ -232,7 +232,7 @@ class ProgressiveLandingTrainer:
         Native 6 classes, no mapping conflicts.
         """
         
-        print(f"\n🎯 Stage 1: DroneDeploy Training")
+        print(f"\n Stage 1: DroneDeploy Training")
         print(f"   Epochs: {num_epochs}")
         print(f"   Batch size: {batch_size}")
         print(f"   Learning rate: {lr}")
@@ -368,7 +368,7 @@ class ProgressiveLandingTrainer:
         
         self.best_metrics['stage1'] = stage1_metrics
         
-        print(f"\n🎯 Stage 1 Complete!")
+        print(f"\n Stage 1 Complete!")
         print(f"   Best mIoU: {best_miou:.4f}")
         
         return stage1_metrics
@@ -557,7 +557,7 @@ def main():
                 lr=args.lr
             )
             
-            print(f"\n✅ Stage 1 completed successfully!")
+            print(f"\n Stage 1 completed successfully!")
             print(f"   Final mIoU: {metrics['final_miou']:.4f}")
             
             # TODO: Implement stages 2 and 3

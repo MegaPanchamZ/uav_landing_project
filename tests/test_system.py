@@ -16,21 +16,21 @@ def test_imports():
     
     try:
         import torch
-        print("✅ PyTorch available")
+        print(" PyTorch available")
     except ImportError:
         print("❌ PyTorch not available")
         return False
     
     try:
         import onnxruntime as ort
-        print("✅ ONNX Runtime available")
+        print(" ONNX Runtime available")
     except ImportError:
         print("❌ ONNX Runtime not available")
         return False
     
     try:
         import cv2
-        print("✅ OpenCV available")
+        print(" OpenCV available")
     except ImportError:
         print("❌ OpenCV not available")
         return False
@@ -51,7 +51,7 @@ def test_model_files():
     for file_path in required_files:
         if Path(file_path).exists():
             size_mb = Path(file_path).stat().st_size / 1024**2
-            print(f"✅ {file_path} ({size_mb:.1f} MB)")
+            print(f" {file_path} ({size_mb:.1f} MB)")
         else:
             print(f"❌ {file_path} - Missing!")
             all_exist = False
@@ -72,7 +72,7 @@ def test_onnx_inference():
         
         # Load model
         session = ort.InferenceSession(model_path)
-        print("✅ Model loaded successfully")
+        print(" Model loaded successfully")
         
         # Test inference
         dummy_input = np.random.rand(1, 3, 256, 256).astype(np.float32)
@@ -91,14 +91,14 @@ def test_onnx_inference():
         avg_time = np.mean(times)
         fps = 1000 / avg_time
         
-        print(f"✅ Inference successful")
+        print(f" Inference successful")
         print(f"📊 Average time: {avg_time:.1f}ms")
         print(f"📊 FPS: {fps:.1f}")
         print(f"📊 Output shape: {result[0].shape}")
         
         # Verify output
         if result[0].shape == (1, 4, 256, 256):
-            print("✅ Output shape correct")
+            print(" Output shape correct")
         else:
             print(f"❌ Unexpected output shape: {result[0].shape}")
             return False
@@ -117,7 +117,7 @@ def test_classical_detector():
         from classical_detector import ClassicalLandingDetector
         
         detector = ClassicalLandingDetector()
-        print("✅ Classical detector initialized")
+        print(" Classical detector initialized")
         
         # Test with synthetic image
         test_image = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
@@ -126,7 +126,7 @@ def test_classical_detector():
         result = detector.detect_landing_zones(test_image)  # Correct method name
         inference_time = (time.time() - start) * 1000
         
-        print(f"✅ Classical inference: {inference_time:.1f}ms")
+        print(f" Classical inference: {inference_time:.1f}ms")
         print(f"📊 Found {len(result.get('zones', []))} zones")
         
         return True
@@ -148,7 +148,7 @@ def test_training_scripts():
     all_exist = True
     for script in scripts:
         if Path(script).exists():
-            print(f"✅ {script}")
+            print(f" {script}")
         else:
             print(f"❌ {script} - Missing!")
             all_exist = False
@@ -169,7 +169,7 @@ def test_documentation():
     all_exist = True
     for doc in docs:
         if Path(doc).exists():
-            print(f"✅ {doc}")
+            print(f" {doc}")
         else:
             print(f"❌ {doc} - Missing!")
             all_exist = False
@@ -188,7 +188,7 @@ def test_visualizations():
     all_exist = True
     for viz_file in viz_files:
         if Path(viz_file).exists():
-            print(f"✅ {viz_file}")
+            print(f" {viz_file}")
         else:
             print(f"❌ {viz_file} - Missing!")
             all_exist = False
@@ -227,7 +227,7 @@ def run_full_test():
     
     passed = 0
     for test_name, result in results:
-        status = "✅ PASS" if result else "❌ FAIL"
+        status = " PASS" if result else "❌ FAIL"
         print(f"{status:<10} {test_name}")
         if result:
             passed += 1

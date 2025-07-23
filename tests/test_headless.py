@@ -15,7 +15,7 @@ sys.path.insert(0, str(project_root))
 try:
     from uav_landing.detector import UAVLandingDetector
     from uav_landing.types import LandingResult
-    print("✅ Successfully imported UAV landing modules")
+    print(" Successfully imported UAV landing modules")
 except ImportError as e:
     print(f"❌ Failed to import modules: {e}")
     sys.exit(1)
@@ -48,18 +48,18 @@ def test_basic_functionality():
             model_path="models/bisenetv2_uav_landing.onnx",
             enable_memory=False
         )
-        print("✅ Detector initialized successfully")
+        print(" Detector initialized successfully")
         
         # Test with synthetic frame
         test_frame = create_synthetic_frame("grass")
-        print(f"✅ Created synthetic frame: {test_frame.shape}")
+        print(f" Created synthetic frame: {test_frame.shape}")
         
         # Process frame with required altitude parameter
         start_time = time.time()
         result = detector.process_frame(test_frame, altitude=5.0)
         processing_time = (time.time() - start_time) * 1000
         
-        print(f"✅ Frame processed in {processing_time:.1f}ms")
+        print(f" Frame processed in {processing_time:.1f}ms")
         print(f"   Result: {result.status}")
         print(f"   Confidence: {result.confidence:.3f}")
         print(f"   Should land: {result.status in ['TARGET_ACQUIRED', 'LANDING']}")
@@ -81,7 +81,7 @@ def test_memory_system():
             model_path="models/bisenetv2_uav_landing.onnx",
             enable_memory=True
         )
-        print("✅ Detector with memory initialized")
+        print(" Detector with memory initialized")
         
         # Process several frames to build memory
         for i in range(5):
@@ -99,7 +99,7 @@ def test_memory_system():
         
         # Check memory status
         memory_zones = detector.memory.get_active_zones()
-        print(f"✅ Memory system working - Active zones: {len(memory_zones)}")
+        print(f" Memory system working - Active zones: {len(memory_zones)}")
         
         return True
         
@@ -131,7 +131,7 @@ def test_performance():
         avg_time = np.mean(times)
         fps = 1000 / avg_time if avg_time > 0 else 0
         
-        print(f"✅ Performance test completed")
+        print(f" Performance test completed")
         print(f"   Average processing time: {avg_time:.1f}ms")
         print(f"   Estimated FPS: {fps:.1f}")
         print(f"   Min/Max time: {min(times):.1f}/{max(times):.1f}ms")
@@ -150,7 +150,7 @@ def main():
     # Add OpenCV fallback for headless
     try:
         import cv2
-        print("✅ OpenCV available")
+        print(" OpenCV available")
     except ImportError:
         print("⚠️  OpenCV not available, using numpy only")
         # Mock cv2.rectangle for synthetic frame creation
@@ -172,7 +172,7 @@ def main():
         results.append((test_name, success))
         
         if success:
-            print(f"✅ {test_name} test PASSED")
+            print(f" {test_name} test PASSED")
         else:
             print(f"❌ {test_name} test FAILED")
     
@@ -185,7 +185,7 @@ def main():
     total = len(results)
     
     for test_name, success in results:
-        status = "✅ PASS" if success else "❌ FAIL"
+        status = " PASS" if success else "❌ FAIL"
         print(f"  {status} {test_name}")
     
     print(f"\nOverall: {passed}/{total} tests passed")

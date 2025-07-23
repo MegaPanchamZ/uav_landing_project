@@ -282,7 +282,7 @@ def run_complete_demo():
         # Display key results
         if analysis['best_decision']:
             decision = analysis['best_decision']
-            print(f"   🎯 Decision: {decision['decision']}")
+            print(f"    Decision: {decision['decision']}")
             print(f"   📍 Position: {decision['position']}")
             print(f"   ⭐ Score: {decision['score']:.3f}")
             print(f"   💡 Explanation: {decision['explanation']}")
@@ -333,8 +333,8 @@ def run_complete_demo():
         
         print(f"{scenario_name:<20} {decision:<20} {score:<8.3f} {safety:<12}")
     
-    print(f"\n✅ Demo completed! Visualizations saved in 'outputs/neuro_symbolic_demo/'")
-    print("\n🎯 Key Achievements:")
+    print(f"\n Demo completed! Visualizations saved in 'outputs/neuro_symbolic_demo/'")
+    print("\n Key Achievements:")
     print("• Solved class imbalance by working WITH dataset structure (24 natural classes)")
     print("• Integrated Scallop for explainable logical reasoning")
     print("• Context-aware decisions (battery, weather, emergency status)")

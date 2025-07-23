@@ -39,7 +39,7 @@ def integrate_fine_tuned_model():
     
     # Copy new model
     shutil.copy2(source_model, existing_model)
-    print(f"✅ Installed fine-tuned model: {existing_model}")
+    print(f" Installed fine-tuned model: {existing_model}")
     
     # Get model sizes for comparison
     if backup_dir.glob("*backup*.onnx"):
@@ -114,7 +114,7 @@ def create_training_summary():
             final_loss = history['train_loss'][-1]
             final_miou = history['val_miou'][-1] if history.get('val_miou') else 0
             
-            print(f"✅ Training completed successfully")
+            print(f" Training completed successfully")
             print(f"   Epochs: {final_epoch}")
             print(f"   Final loss: {final_loss:.4f}")
             print(f"   Final mIoU: {final_miou:.1f}%")
@@ -136,7 +136,7 @@ def create_training_summary():
         size_mb = model_file.stat().st_size / 1024 / 1024
         print(f"📦 Fine-tuned model: {size_mb:.1f} MB")
     
-    print("\\n🎯 Integration Status: READY")
+    print("\\n Integration Status: READY")
     print("   Your fine-tuned model is now active!")
     print("   You can use the main uav_landing_detector.py as usual.")
 

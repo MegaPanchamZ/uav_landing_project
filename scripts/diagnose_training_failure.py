@@ -64,7 +64,7 @@ class TrainingDiagnostic:
         model = model.to(self.device)
         model.eval()
         
-        print(f"✅ Model loaded from stage {checkpoint.get('stage', 'unknown')}")
+        print(f" Model loaded from stage {checkpoint.get('stage', 'unknown')}")
         print(f"   Stage name: {checkpoint.get('stage_name', 'unknown')}")
         print(f"   Metrics: {checkpoint.get('metrics', {})}")
         
@@ -263,7 +263,7 @@ class TrainingDiagnostic:
         try:
             # Test basic loading
             sample = dataset[0]
-            print(f"   ✅ Basic loading works")
+            print(f"    Basic loading works")
             print(f"   📊 Sample keys: {list(sample.keys()) if isinstance(sample, dict) else 'Not a dict'}")
             
             if isinstance(sample, dict):
@@ -272,7 +272,7 @@ class TrainingDiagnostic:
                     mask = sample['mask']
                     
                     print(f"   🖼️ Image shape: {image.shape if hasattr(image, 'shape') else 'No shape'}")
-                    print(f"   🎯 Mask shape: {mask.shape if hasattr(mask, 'shape') else 'No shape'}")
+                    print(f"    Mask shape: {mask.shape if hasattr(mask, 'shape') else 'No shape'}")
                     
                     if hasattr(mask, 'unique'):
                         unique_classes = mask.unique() if hasattr(mask, 'unique') else np.unique(mask)
@@ -402,7 +402,7 @@ class TrainingDiagnostic:
                 report_lines.append("❌ **Data Loading Failed**\n")
                 continue
             
-            report_lines.append("✅ **Data Loading:** OK\n")
+            report_lines.append(" **Data Loading:** OK\n")
             
             # Distribution analysis
             if 'distribution' in result:
@@ -450,7 +450,7 @@ def main():
     diagnostic = TrainingDiagnostic({})
     results = diagnostic.run_full_diagnostic()
     
-    print("\n🎯 NEXT STEPS RECOMMENDED:")
+    print("\n NEXT STEPS RECOMMENDED:")
     print("1. Review prediction visualizations in outputs/diagnostics/")
     print("2. Check class distributions for severe imbalances")
     print("3. Verify that models are not predicting single classes")

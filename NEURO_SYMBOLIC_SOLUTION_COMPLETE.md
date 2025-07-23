@@ -1,4 +1,4 @@
-# 🎯 Complete Neuro-Symbolic UAV Landing Solution
+#  Complete Neuro-Symbolic UAV Landing Solution
 
 ## 🔬 Problem Analysis & Revolutionary Solution
 
@@ -45,10 +45,10 @@ CLASSES = [
 ```
 
 ### **Why This Works:**
-- ✅ **No artificial class imbalance** - each class has natural distribution
-- ✅ **Rich semantic understanding** - 24 distinct object types
-- ✅ **Works with dataset structure** - no forced mapping
-- ✅ **Better generalization** - model learns actual object recognition
+-  **No artificial class imbalance** - each class has natural distribution
+-  **Rich semantic understanding** - 24 distinct object types
+-  **Works with dataset structure** - no forced mapping
+-  **Better generalization** - model learns actual object recognition
 
 ## 🔗 Safety Interpreter: Semantic → Safety Mapping
 
@@ -116,7 +116,7 @@ rel decision(pos, "EMERGENCY_PROTOCOL", conf) =
     emergency_landing_needed(), dangerous_element(pos, _, conf)
 ```
 
-## 🎯 Complete Integration Pipeline
+##  Complete Integration Pipeline
 
 ### **Step 1: Neural Prediction**
 ```python
@@ -172,7 +172,7 @@ decisions = scallop_ctx.relation("final_landing_decision")
 
 ### **1. Solved Training Failure**
 - ❌ **Before**: 0% accuracy on Class 0, 27% mIoU, artificial imbalance
-- ✅ **After**: Natural class distribution, meaningful semantic understanding
+-  **After**: Natural class distribution, meaningful semantic understanding
 
 ### **2. Scallop Integration**
 - **Explainable AI**: Every decision comes with logical explanation
@@ -199,12 +199,12 @@ scenarios = [
 
 | Metric | Old Approach | New Neuro-Symbolic |
 |--------|--------------|---------------------|
-| **Class 0 Accuracy** | 0% ❌ | Not applicable ✅ |
-| **Overall mIoU** | 27% ❌ | Natural classes ✅ |
-| **Decision Explanation** | None ❌ | Full logical trace ✅ |
-| **Context Awareness** | None ❌ | Battery/weather/emergency ✅ |
-| **Class Balance** | 243:1 imbalance ❌ | Natural distribution ✅ |
-| **Domain Match** | Street→Aerial mismatch ❌ | Aerial-native ✅ |
+| **Class 0 Accuracy** | 0% ❌ | Not applicable  |
+| **Overall mIoU** | 27% ❌ | Natural classes  |
+| **Decision Explanation** | None ❌ | Full logical trace  |
+| **Context Awareness** | None ❌ | Battery/weather/emergency  |
+| **Class Balance** | 243:1 imbalance ❌ | Natural distribution  |
+| **Domain Match** | Street→Aerial mismatch ❌ | Aerial-native  |
 
 ## 🎮 Usage Examples
 
@@ -256,7 +256,7 @@ This solution **completely revolutionizes** UAV landing systems by:
 - **Before**: "Class 0: 0% accuracy" → Complete training failure
 - **After**: "LAND_IMMEDIATELY at (x,y) - Large safe landing zone (250 pixels) with optimal conditions"
 
-## 🎯 Next Steps
+##  Next Steps
 
 1. **Train Semantic Model**: Use `train_natural_semantic.py` to train on 24 classes
 2. **Install Scallop**: `pip install scallopy-lang` for full reasoning capability

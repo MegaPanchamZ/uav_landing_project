@@ -460,7 +460,7 @@ def validate_semantic_drone_dataset(data_root: str) -> bool:
             if len(files) == 0:
                 issues.append(f"Empty directory: {dir_path}")
             else:
-                print(f"✅ {dir_name}: {len(files)} files")
+                print(f" {dir_name}: {len(files)} files")
     
     # Check file correspondence
     if not issues:
@@ -486,7 +486,7 @@ def validate_semantic_drone_dataset(data_root: str) -> bool:
             print(f"   - {issue}")
         return False
     else:
-        print("✅ Dataset validation passed!")
+        print(" Dataset validation passed!")
         return True
 
 
@@ -518,7 +518,7 @@ if __name__ == "__main__":
         
         # Analyze class distribution
         distribution = dataset.get_class_distribution()
-        print(f"\n🎯 Class Distribution:")
+        print(f"\n Class Distribution:")
         for class_name, percentage in distribution.items():
             print(f"   {class_name}: {percentage:.1f}%")
         

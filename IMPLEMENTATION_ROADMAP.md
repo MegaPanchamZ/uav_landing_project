@@ -1,12 +1,12 @@
 # 🛩️ UAV Landing Neuro-Symbolic Implementation Roadmap
 
-## 🎯 **Executive Summary**
+##  **Executive Summary**
 
 Your original approach had fundamental flaws that we've now comprehensively addressed with a revolutionary neuro-symbolic architecture. Instead of fighting the data with crude 4-class mappings and mismatched Cityscapes pretraining, we now **preserve all 24 semantic classes** and use **Scallop for logical reasoning**.
 
 ## 📋 **Implementation Status**
 
-### ✅ **COMPLETED: Core Architecture**
+###  **COMPLETED: Core Architecture**
 
 #### **1. Dataset Infrastructure**
 - **`aerial_semantic_24_dataset.py`**: Full 24-class preservation
@@ -54,7 +54,7 @@ pip install opencv-python numpy tqdm pathlib
 #### **Step 1.3: Test Neural Architecture**
 ```bash
 cd uav_landing_project
-python -c "from models.enhanced_architectures import EnhancedBiSeNetV2; print('✅ Model loads')"
+python -c "from models.enhanced_architectures import EnhancedBiSeNetV2; print(' Model loads')"
 ```
 
 ### **Phase 2: Neural Training (Week 2)**
@@ -180,7 +180,7 @@ critical_hazard(x, y) :- PixelClass(x, y, "person", p), p > 0.4
 recommend_landing(zone_id, "primary", 0.92, "Safe paved area, no hazards detected")
 ```
 
-## 🎯 **Success Criteria**
+##  **Success Criteria**
 
 ### **Immediate Goals (4 weeks)**
 - [ ] **Dataset loads**: 24-class dataset working

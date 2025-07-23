@@ -145,7 +145,7 @@ class SemanticDroneDatasetAnalyzer:
     def _propose_landing_mappings(self):
         """Propose optimal class mappings for landing detection."""
         
-        print("\n🎯 PROPOSED LANDING CLASS MAPPINGS")
+        print("\n PROPOSED LANDING CLASS MAPPINGS")
         print("=" * 35)
         
         # Enhanced 4-class mapping with better granularity
@@ -250,7 +250,7 @@ class SemanticDroneDatasetAnalyzer:
         ]
         
         for adv in advantages:
-            print(f"  ✅ {adv}")
+            print(f"   {adv}")
             
     def _evaluate_training_improvements(self):
         """Evaluate potential training improvements."""
@@ -330,7 +330,7 @@ class SemanticDroneDatasetAnalyzer:
             for i, task in enumerate(tasks, 1):
                 print(f"  {i}. {task}")
                 
-        print(f"\n🎯 EXPECTED PERFORMANCE GAINS:")
+        print(f"\n EXPECTED PERFORMANCE GAINS:")
         gains = [
             "Accuracy: 59% IoU → 75-80% IoU (realistic target)",
             "Generalization: Better performance on unseen environments",

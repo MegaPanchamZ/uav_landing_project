@@ -110,8 +110,8 @@ class MemoryEfficientTrainer:
             preprocess_on_init=True
         )
 
-        print(f"  ✅ Training samples: {len(train_dataset)}")
-        print(f"  ✅ Validation samples: {len(val_dataset)}")
+        print(f"   Training samples: {len(train_dataset)}")
+        print(f"   Validation samples: {len(val_dataset)}")
 
         # Conservative DataLoaders for 8GB GPU
         train_loader = DataLoader(
@@ -217,7 +217,7 @@ class MemoryEfficientTrainer:
                 best_iou = val_metrics.get('miou', 0.0)
                 save_path = output_dir / f"memory_efficient_{self.config['model_type']}_best.pth"
                 torch.save(model.state_dict(), save_path)
-                print(f"  ✅ New best model saved to {save_path} (mIoU: {best_iou:.4f})")
+                print(f"   New best model saved to {save_path} (mIoU: {best_iou:.4f})")
 
         wandb.finish()
         print("\n🧠 Memory-efficient training complete!")

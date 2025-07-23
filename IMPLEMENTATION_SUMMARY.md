@@ -1,6 +1,6 @@
 # 🚁 UAV Landing System - Implementation Summary
 
-## 🎯 **Problem Solved: Research-Backed Edge-Optimized Approach**
+##  **Problem Solved: Research-Backed Edge-Optimized Approach**
 
 You're absolutely right - we **completely pivoted** from the original flawed approach to a **research-validated, edge-optimized strategy** that addresses all your core concerns:
 
@@ -167,7 +167,7 @@ python train_progressive_landing.py \
     --resume outputs/progressive_training/stage2_best.pth
 ```
 
-## 🎯 **Expected Performance Targets**
+##  **Expected Performance Targets**
 
 ### **Stage 1 (DroneDeploy Only)**
 - **mIoU**: 70-80% (realistic with limited data)
@@ -230,10 +230,10 @@ python train_progressive_landing.py \
 ```
 
 This conservative approach gives us:
-- ✅ **Research-validated methodology** (KDP-Net paper)
-- ✅ **Edge-optimized for real-time deployment**
-- ✅ **Conflict-free training** (single dataset initially)
-- ✅ **Scalable to multi-dataset** (if needed)
-- ✅ **Safety-critical focus** (UAV landing priorities)
+-  **Research-validated methodology** (KDP-Net paper)
+-  **Edge-optimized for real-time deployment**
+-  **Conflict-free training** (single dataset initially)
+-  **Scalable to multi-dataset** (if needed)
+-  **Safety-critical focus** (UAV landing priorities)
 
 **Ready to test the DroneDeploy dataset and start Stage 1 training?** 🚁 

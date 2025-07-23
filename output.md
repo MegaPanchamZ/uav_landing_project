@@ -50,7 +50,7 @@ SemanticDroneDataset initialized:
   - Validation samples: 60
 Creating model: mmseg_bisenetv2
 Loading MMSeg BiSeNetV2 weights from: H:\landing-system\model_pths\bisenetv2_fcn_4x4_1024x1024_160k_cityscapes_20210902_015551-bcf10f09.pth
-✅ Pretrained weight loading completed:
+ Pretrained weight loading completed:
    Loaded layers: 75
    Adapted layers: 10
    Skipped layers: 221

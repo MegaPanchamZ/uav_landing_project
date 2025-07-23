@@ -121,7 +121,7 @@ class RTX4060TiTrainer:
             torch.backends.cuda.matmul.allow_tf32 = True
             torch.backends.cudnn.allow_tf32 = True
             torch.backends.cudnn.benchmark = self.config['hardware']['benchmark_cudnn']
-            print("   ✅ CUDA optimizations enabled")
+            print("    CUDA optimizations enabled")
         except:
             print("   ⚠️  CUDA optimizations not available")
         
@@ -129,7 +129,7 @@ class RTX4060TiTrainer:
         if 'gpu_memory_fraction' in self.config['hardware']:
             fraction = self.config['hardware']['gpu_memory_fraction']
             torch.cuda.set_per_process_memory_fraction(fraction)
-            print(f"   ✅ GPU memory fraction set to {fraction}")
+            print(f"    GPU memory fraction set to {fraction}")
     
     def create_loss_function(self, class_weights: torch.Tensor) -> nn.Module:
         """Create memory-efficient loss function."""
@@ -173,7 +173,7 @@ class RTX4060TiTrainer:
             if datasets['train'] is None or len(datasets['train']) == 0:
                 raise ValueError("No DroneDeploy data found")
             
-            print(f"   ✅ DroneDeploy dataset loaded")
+            print(f"    DroneDeploy dataset loaded")
             print(f"   Train patches: {len(datasets['train'])}")
             print(f"   Val patches: {len(datasets['val'])}")
             
@@ -415,7 +415,7 @@ class RTX4060TiTrainer:
             # Cleanup between epochs
             self.memory_monitor.clear_cache()
         
-        print(f"\n🎯 Training Complete!")
+        print(f"\n Training Complete!")
         print(f"   Best mIoU: {self.best_miou:.4f}")
         print(f"   Best model: {checkpoint_dir}/best_model.pth")
         
@@ -487,7 +487,7 @@ def main():
             checkpoint_dir=args.checkpoint_dir
         )
         
-        print(f"\n✅ Training completed successfully!")
+        print(f"\n Training completed successfully!")
         print(f"   Final mIoU: {results['best_miou']:.4f}")
         
     except KeyboardInterrupt:

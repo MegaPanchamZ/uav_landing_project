@@ -312,7 +312,7 @@ class SimpleBiSeNetV2(nn.Module):
                     print(f"Skipping layer {k} due to size mismatch")
             
             self.load_state_dict(filtered_dict, strict=False)
-            print(f"✅ Loaded pretrained weights from {pretrained_path}")
+            print(f" Loaded pretrained weights from {pretrained_path}")
             
         except Exception as e:
             print(f"⚠️  Could not load pretrained weights: {e}")
@@ -349,7 +349,7 @@ def main():
     # Stage 1: DroneDeploy dataset check
     drone_deploy_path = "../datasets/drone_deploy_dataset_intermediate/dataset-medium"
     if Path(drone_deploy_path).exists():
-        print(f"✅ Stage 1 dataset found: {drone_deploy_path}")
+        print(f" Stage 1 dataset found: {drone_deploy_path}")
         
         # Create Stage 1 dataset
         train_transform, val_transform = create_transforms()
@@ -374,7 +374,7 @@ def main():
     # Stage 2: UDD dataset check
     udd_path = "../datasets/UDD/UDD/UDD6"
     if Path(udd_path).exists():
-        print(f"✅ Stage 2 dataset found: {udd_path}")
+        print(f" Stage 2 dataset found: {udd_path}")
         
         udd_train = UDDDataset(udd_path, "train", train_transform)
         print(f"   Train samples: {len(udd_train)}")

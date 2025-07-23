@@ -453,7 +453,7 @@ class EdgeLandingTrainer:
                     'best_miou': self.best_miou
                 })
         
-        print(f"\n🎯 Training completed!")
+        print(f"\n Training completed!")
         print(f"   Best mIoU: {self.best_miou:.4f}")
         print(f"   Final model saved: {self.checkpoint_dir / 'best_model.pth'}")
         
@@ -488,7 +488,7 @@ class EdgeLandingTrainer:
             from models.edge_landing_net import convert_to_onnx
             onnx_path = self.checkpoint_dir / 'edge_landing_final.onnx'
             convert_to_onnx(self.model, str(onnx_path))
-            print(f"   ONNX Export: ✅ {onnx_path}")
+            print(f"   ONNX Export:  {onnx_path}")
         except Exception as e:
             print(f"   ONNX Export: ❌ {e}")
 
@@ -582,7 +582,7 @@ def main():
             class_weights=class_weights
         )
         
-        print(f"\n✅ Training completed successfully!")
+        print(f"\n Training completed successfully!")
         print(f"   Best model: {args.checkpoint_dir}/best_model.pth")
         
     except KeyboardInterrupt:
