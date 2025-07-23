@@ -10,3 +10,4 @@ wheels/
 .venv
 wandb/
 cache/
+ubu_venv

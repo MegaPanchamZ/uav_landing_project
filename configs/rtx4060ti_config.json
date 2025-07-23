@@ -1,0 +1,42 @@
+{
+    "model": {
+        "type": "standard",
+        "num_classes": 6,
+        "input_size": 512,
+        "use_uncertainty": false
+    },
+    "training": {
+        "batch_size": 6,
+        "num_epochs": 30,
+        "learning_rate": 1e-3,
+        "weight_decay": 1e-4,
+        "num_workers": 6,
+        "pin_memory": true,
+        "mixed_precision": true,
+        "gradient_accumulation_steps": 2
+    },
+    "data": {
+        "patch_size": 512,
+        "stride_factor": 0.5,
+        "min_valid_pixels": 0.15,
+        "augmentation": true,
+        "edge_enhancement": false
+    },
+    "optimization": {
+        "memory_efficient": true,
+        "compile_model": false,
+        "cache_dataset": false,
+        "cpu_offload": false
+    },
+    "hardware": {
+        "device": "cuda",
+        "gpu_memory_fraction": 0.85,
+        "benchmark_cudnn": true,
+        "deterministic": false
+    },
+    "checkpointing": {
+        "save_every": 5,
+        "keep_last": 3,
+        "save_optimizer": false
+    }
+} 
