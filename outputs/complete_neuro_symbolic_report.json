@@ -1,0 +1,55 @@
+{
+  "methodology": "Neuro-Symbolic UAV Landing Analysis",
+  "components": {
+    "neural": "Semantic Segmentation (24 classes)",
+    "symbolic": "Safety Zone Mapping",
+    "logical": "Scallop-style Rule-based Reasoning"
+  },
+  "results": {
+    "recommendation": "DO NOT LAND - FIND ALTERNATIVE SITE",
+    "confidence": 0.9,
+    "safe_area_percentage": 46.01402282714844,
+    "caution_area_percentage": 0.0,
+    "dangerous_area_percentage": 50.74615478515625,
+    "landing_zones_count": 2
+  },
+  "scallop_reasoning": {
+    "facts": [
+      "safe_area_percentage(46.0) : 1.000",
+      "caution_area_percentage(0.0) : 1.000",
+      "dangerous_area_percentage(50.7) : 1.000",
+      "has_class(unlabeled, 3.2) : 1.000",
+      "has_class(paved-area, 12.0) : 1.000",
+      "has_class(grass, 34.0) : 1.000",
+      "has_class(water, 48.8) : 1.000",
+      "has_class(roof, 2.0) : 1.000"
+    ],
+    "rules": [
+      "landing_feasible :- safe_area_percentage >= 30.0",
+      "acceptable_risk :- dangerous_area_percentage <= 20.0",
+      "water_risk :- has_class(water, X), X > 5.0",
+      "obstacle_risk :- has_class(obstacle, X), X > 2.0",
+      "recommend_landing :- landing_feasible, acceptable_risk, not water_risk",
+      "conditional_landing :- safe_area_percentage >= 15.0, dangerous_area_percentage <= 30.0",
+      "reject_landing :- dangerous_area_percentage > 30.0",
+      "reject_landing :- safe_area_percentage < 10.0"
+    ],
+    "conclusions": [
+      "reject_landing : 0.900",
+      "landing_feasible : 1.0",
+      "water_risk : 0.8"
+    ]
+  },
+  "reasoning_trace": [
+    "\ud83d\udd0d SEMANTIC ANALYSIS:",
+    "  - unlabeled: 3.2% (8,493 pixels) \u2192 IGNORED",
+    "  - paved-area: 12.0% (31,472 pixels) \u2192 SAFE",
+    "  - grass: 34.0% (89,151 pixels) \u2192 SAFE",
+    "  - water: 48.8% (127,826 pixels) \u2192 DANGEROUS",
+    "  - roof: 2.0% (5,202 pixels) \u2192 DANGEROUS",
+    "\n\ud83d\udee1\ufe0f SAFETY ZONE MAPPING:",
+    "  - SAFE areas: 46.0% (120,623 pixels)",
+    "  - CAUTION areas: 0.0% (0 pixels)",
+    "  - DANGEROUS areas: 50.7% (133,028 pixels)"
+  ]
+}

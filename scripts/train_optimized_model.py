@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
-Single-Stage Training on Semantic Drone Dataset
-===============================================
+Optimized Training Script for Semantic Segmentation
+==================================================
 
-This script implements a clean, single-stage training pipeline to fine-tune a
-pretrained segmentation model (e.g., BiSeNetV2) exclusively on the high-quality
-Semantic Drone Dataset.
+This script uses the optimized dataset with multi-scale support and
+addresses all the data loading bottlenecks identified.
 
-This approach avoids the pitfalls of progressive training with lower-quality
-datasets and serves as the new standard for producing a high-performance
-vision model for the UAV landing system.
+Key optimizations:
+- Pre-processed data caching
+- Multi-scale training (crops + context)
+- Optimized DataLoader settings
+- GPU memory optimization
 """
 
 import os
@@ -17,17 +18,18 @@ import sys
 import argparse
 import torch
 import torch.nn as nn
-from torch.cuda.amp import GradScaler, autocast
+from torch.cuda.amp import GradScaler
 from pathlib import Path
 from typing import Dict, Any
 import wandb
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+import time
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from datasets.semantic_drone_dataset import SemanticDroneDataset, create_semantic_drone_transforms
+from datasets.optimized_semantic_dataset import OptimizedSemanticDroneDataset, create_optimized_transforms
 from models.enhanced_architectures import create_enhanced_model
 from losses.safety_aware_losses import CombinedSafetyLoss
 from safety_evaluation.safety_metrics import SafetyAwareEvaluator
@@ -35,15 +37,18 @@ from safety_evaluation.safety_metrics import SafetyAwareEvaluator
 def print_header():
     """Prints a formatted header for the training script."""
     print("=" * 80)
-    print("Single-Stage Semantic Segmentation Training")
+    print("🚀 OPTIMIZED Semantic Segmentation Training")
     print("=" * 80)
-    print("This script trains a model exclusively on the Semantic Drone Dataset.")
-    print("It uses a pre-trained model and fine-tunes it in a single, robust stage.")
+    print("Features:")
+    print("  • Pre-processed data caching for instant loading")
+    print("  • Multi-scale: crops (detail) + full images (context)")
+    print("  • GPU-optimized data pipeline")
+    print("  • Faster augmentation pipeline")
     print("-" * 80)
 
-class Trainer:
+class OptimizedTrainer:
     """
-    Manages the single-stage training and validation process.
+    Optimized trainer with fast data loading and multi-scale support.
     """
     def __init__(self, config: Dict[str, Any]):
         self.config = config
@@ -52,10 +57,10 @@ class Trainer:
         # Initialize wandb
         wandb.init(
             project=config['wandb_project'],
-            name=f"train-{config['model_type']}-{wandb.util.generate_id()}",
+            name=f"optimized-{config['model_type']}-{wandb.util.generate_id()}",
             config=config,
-            tags=["single-stage", "semantic-drone", config['model_type'], "fast-crops"],
-            notes="Fast training with random crops on Semantic Drone Dataset."
+            tags=["optimized", "multi-scale", "fast-loading", config['model_type']],
+            notes="Optimized training with pre-processed caching and multi-scale support."
         )
 
         self._log_system_info()
@@ -70,55 +75,67 @@ class Trainer:
         if torch.cuda.is_available():
             print(f"GPU: {torch.cuda.get_device_name()}")
             print(f"   - Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.2f} GB")
+            print(f"   - CUDA Version: {torch.version.cuda}")
         else:
             print("WARNING: Running on CPU. Training will be extremely slow.")
         print("-" * 80)
 
     def _get_dataloaders(self) -> Dict[str, DataLoader]:
-        """Creates and returns the training and validation dataloaders."""
-        print("Loading datasets...")
-        train_transforms = create_semantic_drone_transforms(
-            input_size=self.config['input_size'], is_training=True
+        """Creates optimized dataloaders with pre-processing."""
+        print("🔄 Setting up optimized datasets...")
+        
+        train_transforms = create_optimized_transforms(
+            input_size=self.config['input_size'], 
+            is_training=True
         )
-        val_transforms = create_semantic_drone_transforms(
-            input_size=self.config['input_size'], is_training=False
+        val_transforms = create_optimized_transforms(
+            input_size=self.config['input_size'], 
+            is_training=False
         )
 
-        train_dataset = SemanticDroneDataset(
+        # Training dataset with multi-scale support
+        train_dataset = OptimizedSemanticDroneDataset(
             data_root=self.config['dataset_path'],
             split="train",
             transform=train_transforms,
-            class_mapping="enhanced_4_class",
-            use_random_crops=True,
+            target_resolution=self.config['input_size'],
+            use_multi_scale=self.config.get('use_multi_scale', True),
             crops_per_image=self.config.get('crops_per_image', 4),
-            cache_images=True
+            preprocess_on_init=True
         )
-        val_dataset = SemanticDroneDataset(
+        
+        # Validation dataset
+        val_dataset = OptimizedSemanticDroneDataset(
             data_root=self.config['dataset_path'],
             split="val",
             transform=val_transforms,
-            class_mapping="enhanced_4_class",
-            use_random_crops=False,  # Use full images for validation
-            cache_images=True
+            target_resolution=self.config['input_size'],
+            use_multi_scale=False,  # Only full images for validation
+            preprocess_on_init=True
         )
 
-        print(f"  - Training samples: {len(train_dataset)}")
-        print(f"  - Validation samples: {len(val_dataset)}")
+        print(f"  ✅ Training samples: {len(train_dataset)}")
+        print(f"  ✅ Validation samples: {len(val_dataset)}")
 
+        # Optimized DataLoaders
         train_loader = DataLoader(
             train_dataset,
             batch_size=self.config['batch_size'],
             shuffle=True,
             num_workers=self.config['num_workers'],
             pin_memory=True,
-            drop_last=True
+            drop_last=True,
+            persistent_workers=True,  # Keeps workers alive between epochs
+            prefetch_factor=4,       # Pre-fetch more batches
         )
         val_loader = DataLoader(
             val_dataset,
             batch_size=self.config['batch_size'],
             shuffle=False,
             num_workers=self.config['num_workers'],
-            pin_memory=True
+            pin_memory=True,
+            persistent_workers=True,
+            prefetch_factor=2
         )
         return {'train': train_loader, 'val': val_loader}
 
@@ -135,7 +152,7 @@ class Trainer:
         return model.to(self.device)
 
     def train(self):
-        """Runs the full training and validation pipeline."""
+        """Runs the optimized training pipeline."""
         dataloaders = self._get_dataloaders()
         model = self._get_model()
         
@@ -154,51 +171,67 @@ class Trainer:
         output_dir = Path(self.config['output_dir'])
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        print("\nStarting training...\n")
+        print("\n🚀 Starting optimized training...\n")
+        
+        # Training loop with timing
         for epoch in range(self.config['epochs']):
             print(f"--- Epoch {epoch+1}/{self.config['epochs']} ---")
             
+            # Time the training
+            start_time = time.time()
             train_loss = self._train_epoch(model, dataloaders['train'], criterion, optimizer, scaler)
+            train_time = time.time() - start_time
+            
+            # Time the validation
+            start_time = time.time()
             val_loss, val_metrics = self._validate_epoch(model, dataloaders['val'], criterion)
+            val_time = time.time() - start_time
             
             scheduler.step()
 
-            # Logging
+            # Logging with timing info
             current_lr = optimizer.param_groups[0]['lr']
             log_metrics = {
                 'epoch': epoch,
                 'train_loss': train_loss,
                 'val_loss': val_loss,
                 'learning_rate': current_lr,
+                'train_time': train_time,
+                'val_time': val_time,
                 **{f"val/{k}": v for k, v in val_metrics.items()}
             }
             wandb.log(log_metrics)
             
-            print(f"  - Train Loss: {train_loss:.4f}")
-            print(f"  - Val Loss:   {val_loss:.4f}")
+            print(f"  - Train Loss: {train_loss:.4f} ({train_time:.1f}s)")
+            print(f"  - Val Loss:   {val_loss:.4f} ({val_time:.1f}s)")
             print(f"  - Val mIoU:   {val_metrics.get('miou', 0.0):.4f}")
             print(f"  - Val Acc:    {val_metrics.get('accuracy', 0.0):.4f}")
 
             # Save best model
             if val_metrics.get('miou', 0.0) > best_iou:
                 best_iou = val_metrics.get('miou', 0.0)
-                save_path = output_dir / f"{self.config['model_type']}_best.pth"
+                save_path = output_dir / f"optimized_{self.config['model_type']}_best.pth"
                 torch.save(model.state_dict(), save_path)
                 print(f"  ✅ New best model saved to {save_path} (mIoU: {best_iou:.4f})")
 
         wandb.finish()
-        print("\n🎉 Training complete!")
+        print("\n🎉 Optimized training complete!")
         print(f"Best model saved in '{output_dir}'")
 
     def _train_epoch(self, model, dataloader, criterion, optimizer, scaler):
-        """Trains the model for one epoch."""
+        """Trains the model for one epoch with timing."""
         model.train()
         total_loss = 0.0
-        progress_bar = tqdm(dataloader, desc="Training", leave=False)
+        
+        # Pre-fetch first batch to hide loading latency
+        dataloader_iter = iter(dataloader)
+        
+        progress_bar = tqdm(dataloader_iter, desc="Training", leave=False)
         
         for batch in progress_bar:
-            images = batch['image'].to(self.device)
-            masks = batch['mask'].to(self.device)
+            # Move to GPU efficiently
+            images = batch['image'].to(self.device, non_blocking=True)
+            masks = batch['mask'].to(self.device, non_blocking=True)
             
             optimizer.zero_grad()
             
@@ -221,12 +254,13 @@ class Trainer:
         model.eval()
         total_loss = 0.0
         evaluator = SafetyAwareEvaluator(num_classes=4)
+        
         progress_bar = tqdm(dataloader, desc="Validating", leave=False)
 
         with torch.no_grad():
             for batch in progress_bar:
-                images = batch['image'].to(self.device)
-                masks = batch['mask'].to(self.device)
+                images = batch['image'].to(self.device, non_blocking=True)
+                masks = batch['mask'].to(self.device, non_blocking=True)
                 
                 outputs = model(images)
                 loss_dict = criterion(outputs, masks)
@@ -242,7 +276,7 @@ class Trainer:
         return total_loss / len(dataloader), metrics
 
 def main():
-    parser = argparse.ArgumentParser(description="Single-Stage Semantic Segmentation Training")
+    parser = argparse.ArgumentParser(description="Optimized Semantic Segmentation Training")
     
     # Get the absolute path to the project root
     project_root = Path(__file__).parent.parent.parent
@@ -256,7 +290,7 @@ def main():
     parser.add_argument('--pretrained-path', type=str, 
                         default=str(default_pretrained_path),
                         help='Path to the pretrained Cityscapes weights.')
-    parser.add_argument('--output-dir', type=str, default='outputs/single_stage_training',
+    parser.add_argument('--output-dir', type=str, default='outputs/optimized_training',
                         help='Directory to save model checkpoints.')
 
     # Model and Training Parameters
@@ -267,27 +301,29 @@ def main():
                         help='Input image size (height width).')
     parser.add_argument('--epochs', type=int, default=50,
                         help='Total number of training epochs.')
-    parser.add_argument('--batch-size', type=int, default=8,
+    parser.add_argument('--batch-size', type=int, default=16,  # Increased default
                         help='Training batch size.')
     parser.add_argument('--learning-rate', type=float, default=1e-4,
                         help='Initial learning rate.')
-    parser.add_argument('--num-workers', type=int, default=4,
+    parser.add_argument('--num-workers', type=int, default=8,  # Increased default
                         help='Number of workers for DataLoader.')
 
-    # Performance optimization
+    # Optimization parameters
     parser.add_argument('--crops-per-image', type=int, default=4,
-                        help='Number of random crops per training image (multiplies dataset size).')
+                        help='Number of pre-computed crops per training image.')
+    parser.add_argument('--use-multi-scale', action='store_true', default=True,
+                        help='Use multi-scale training (crops + context).')
 
     # W&B
-    parser.add_argument('--wandb-project', type=str, default='uav-landing-single-stage',
+    parser.add_argument('--wandb-project', type=str, default='uav-landing-optimized',
                         help='Weights & Biases project name.')
 
     args = parser.parse_args()
     config = vars(args)
     
     print_header()
-    trainer = Trainer(config)
+    trainer = OptimizedTrainer(config)
     trainer.train()
 
 if __name__ == "__main__":
-    main()
+    main() 

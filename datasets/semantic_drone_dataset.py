@@ -45,7 +45,9 @@ class SemanticDroneDataset(Dataset):
         target_resolution: Tuple[int, int] = (512, 512),
         class_mapping: str = "enhanced_4_class",
         return_confidence: bool = False,
-        cache_images: bool = False
+        cache_images: bool = True,
+        use_random_crops: bool = True,
+        crops_per_image: int = 4
     ):
         """
         Initialize Semantic Drone Dataset.
@@ -58,6 +60,8 @@ class SemanticDroneDataset(Dataset):
             class_mapping: Type of class mapping ('enhanced_4_class', 'advanced_6_class')
             return_confidence: Whether to return confidence maps
             cache_images: Cache images in memory for faster training
+            use_random_crops: Use random crops instead of full image resizing (much faster)
+            crops_per_image: Number of random crops per image (effectively multiplies dataset size)
         """
         self.data_root = Path(data_root)
         self.split = split
@@ -66,6 +70,8 @@ class SemanticDroneDataset(Dataset):
         self.class_mapping_type = class_mapping
         self.return_confidence = return_confidence
         self.cache_images = cache_images
+        self.use_random_crops = use_random_crops
+        self.crops_per_image = crops_per_image if split == "train" else 1  # Only use multiple crops for training
         
         # Original 24 classes from Semantic Drone Dataset
         self.original_classes = {
@@ -183,12 +189,12 @@ class SemanticDroneDataset(Dataset):
             raise ValueError(f"Unknown split: {self.split}")
     
     def __len__(self):
-        return len(self.file_indices)
+        return len(self.file_indices) * self.crops_per_image
     
     def __getitem__(self, idx):
         """Get a sample from the dataset."""
         
-        file_idx = self.file_indices[idx]
+        file_idx = self.file_indices[idx // self.crops_per_image]
         image_path = self.image_files[file_idx]
         label_path = self.label_files[file_idx]
         
@@ -208,6 +214,35 @@ class SemanticDroneDataset(Dataset):
             label = cv2.imread(str(label_path), cv2.IMREAD_GRAYSCALE)
             if self.label_cache is not None:
                 self.label_cache[file_idx] = label
+        
+        # Random cropping for speed and detail preservation
+        if self.use_random_crops and self.split == "train":
+            # Take random crops from the high-resolution image
+            crop_h, crop_w = self.target_resolution
+            img_h, img_w = image.shape[:2]
+            
+            # Ensure crop size doesn't exceed image size
+            crop_h = min(crop_h, img_h)
+            crop_w = min(crop_w, img_w)
+            
+            # Random crop coordinates
+            if img_h > crop_h:
+                start_h = np.random.randint(0, img_h - crop_h + 1)
+            else:
+                start_h = 0
+            
+            if img_w > crop_w:
+                start_w = np.random.randint(0, img_w - crop_w + 1)
+            else:
+                start_w = 0
+            
+            # Extract crop
+            image = image[start_h:start_h + crop_h, start_w:start_w + crop_w]
+            label = label[start_h:start_h + crop_h, start_w:start_w + crop_w]
+        else:
+            # For validation/test, resize to target resolution
+            image = cv2.resize(image, self.target_resolution[::-1], interpolation=cv2.INTER_LINEAR)
+            label = cv2.resize(label, self.target_resolution[::-1], interpolation=cv2.INTER_NEAREST)
         
         # Map original classes to landing classes
         mapped_label = self._map_classes(label)
@@ -333,7 +368,8 @@ class SemanticDroneDataset(Dataset):
 def create_semantic_drone_transforms(
     input_size: Tuple[int, int] = (512, 512),
     is_training: bool = True,
-    advanced_augmentation: bool = True
+    advanced_augmentation: bool = False,  # Changed default to False for speed
+    use_resize: bool = False  # Don't resize if using random crops
 ) -> A.Compose:
     """
     Create augmentation pipeline for Semantic Drone Dataset.
@@ -341,16 +377,19 @@ def create_semantic_drone_transforms(
     Args:
         input_size: Target image size
         is_training: Whether to apply training augmentations
-        advanced_augmentation: Use advanced augmentation techniques
+        advanced_augmentation: Use advanced augmentation techniques (slower)
+        use_resize: Whether to include resize transform (disable when using random crops)
     """
     
-    transforms_list = [
-        A.Resize(input_size[0], input_size[1], interpolation=cv2.INTER_LINEAR)
-    ]
+    transforms_list = []
+    
+    # Only add resize if specifically requested (not needed with random crops)
+    if use_resize:
+        transforms_list.append(A.Resize(input_size[0], input_size[1], interpolation=cv2.INTER_LINEAR))
     
     if is_training:
         if advanced_augmentation:
-            # Advanced augmentations for better generalization
+            # Advanced augmentations for better generalization (slower)
             transforms_list.extend([
                 A.HorizontalFlip(p=0.5),
                 A.VerticalFlip(p=0.2),  # Aerial imagery can be flipped
@@ -377,12 +416,11 @@ def create_semantic_drone_transforms(
                 A.OpticalDistortion(distort_limit=0.1, shift_limit=0.1, p=0.2),
             ])
         else:
-            # Basic augmentations
+            # Fast augmentations for speed
             transforms_list.extend([
                 A.HorizontalFlip(p=0.5),
                 A.RandomRotate90(p=0.3),
-                A.RandomBrightnessContrast(p=0.3),
-                A.GaussianBlur(blur_limit=(3, 5), p=0.2)
+                A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.3),
             ])
     
     # Normalization (ImageNet stats)
@@ -469,7 +507,9 @@ if __name__ == "__main__":
             split="train",
             transform=train_transform,
             class_mapping="enhanced_4_class",
-            return_confidence=True
+            return_confidence=True,
+            use_random_crops=True,
+            crops_per_image=4
         )
         
         print(f"\n📊 Dataset Info:")
