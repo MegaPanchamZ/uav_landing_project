@@ -118,6 +118,10 @@ class DroneDeploy1024Dataset(Dataset):
         # Analyze class distribution
         self._analyze_distribution()
         
+        # Batch cache for on-demand loading
+        self._batch_cache = {}
+        self._max_cached_batches = 3  # Keep max 3 batches in memory
+        
         print(f"   Split {split}: {len(self.patches)} patches")
     
     def _get_cache_file(self) -> Path:
@@ -143,23 +147,25 @@ class DroneDeploy1024Dataset(Dataset):
             with open(cache_file, 'rb') as f:
                 cached_data = pickle.load(f)
             
-            # Verify cache structure
-            if not isinstance(cached_data, dict) or 'patches' not in cached_data:
-                print(f"   ⚠️  Invalid cache structure, regenerating...")
-                return self._generate_and_cache_patches()
+            # Check if this is new metadata-based cache
+            if 'patch_metadata' in cached_data:
+                # New metadata-based cache
+                if cached_data.get('image_count', 0) != len(list(self.images_dir.glob("*.tif"))):
+                    print(f"   ⚠️  Cache outdated, regenerating...")
+                    return self._generate_and_cache_patches()
+                
+                patch_metadata = cached_data['patch_metadata']
+                if not isinstance(patch_metadata, list) or len(patch_metadata) == 0:
+                    print(f"   ⚠️  Empty or invalid patches, regenerating...")
+                    return self._generate_and_cache_patches()
+                
+                print(f"   ✅ Loaded {len(patch_metadata)} cached patch metadata")
+                return patch_metadata
             
-            # Verify cache is still valid
-            if cached_data.get('image_count', 0) != len(list(self.images_dir.glob("*.tif"))):
-                print(f"   ⚠️  Cache outdated, regenerating...")
+            # Legacy cache format - regenerate
+            else:
+                print(f"   ⚠️  Legacy cache format, regenerating...")
                 return self._generate_and_cache_patches()
-            
-            patches = cached_data['patches']
-            if not isinstance(patches, list) or len(patches) == 0:
-                print(f"   ⚠️  Empty or invalid patches, regenerating...")
-                return self._generate_and_cache_patches()
-            
-            print(f"    Loaded {len(patches)} cached patches")
-            return patches
             
         except (pickle.UnpicklingError, EOFError, FileNotFoundError) as e:
             print(f"   ⚠️  Cache corrupted ({e}), regenerating...")
@@ -174,62 +180,109 @@ class DroneDeploy1024Dataset(Dataset):
             return self._generate_and_cache_patches()
     
     def _generate_and_cache_patches(self) -> List[Dict]:
-        """Generate patches and save to cache."""
+        """Generate patches and save to cache incrementally to avoid memory issues."""
         
         # Load image files
         image_files = self._load_image_files()
-        patches = []
         
         print(f"   Found {len(image_files)} source images")
         
-        # Process each image with progress bar
-        for img_path, label_path in tqdm(image_files, desc="   Processing images"):
-            try:
-                # Load images
-                image = cv2.imread(str(img_path))
-                label = cv2.imread(str(label_path), cv2.IMREAD_GRAYSCALE)
-                
-                if image is None or label is None:
-                    print(f"   ⚠️  Failed to load: {img_path.name}")
+        # Create cache directory structure
+        patches_dir = self.cache_dir / "patches"
+        patches_dir.mkdir(exist_ok=True)
+        
+        # Clear any existing patch files
+        for patch_file in patches_dir.glob("batch_*.pkl"):
+            patch_file.unlink()
+        
+        # Track patch metadata (lightweight)
+        all_patch_metadata = []
+        batch_size = 5  # Process 5 images at a time to control memory
+        batch_num = 0
+        
+        # Process images in batches
+        for i in tqdm(range(0, len(image_files), batch_size), desc="   Processing image batches"):
+            batch_files = image_files[i:i + batch_size]
+            batch_patches = []
+            
+            for img_path, label_path in batch_files:
+                try:
+                    # Load images
+                    image = cv2.imread(str(img_path))
+                    label = cv2.imread(str(label_path), cv2.IMREAD_GRAYSCALE)
+                    
+                    if image is None or label is None:
+                        print(f"   ⚠️  Failed to load: {img_path.name}")
+                        continue
+                    
+                    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                    h, w = image.shape[:2]
+                    
+                    # Generate patches from this image
+                    image_patches = self._extract_patches_from_image(
+                        image, label, img_path.stem, h, w
+                    )
+                    
+                    batch_patches.extend(image_patches)
+                    
+                    # Add lightweight metadata for each patch
+                    for patch_info in image_patches:
+                        metadata = {
+                            'source_image': patch_info['source_image'],
+                            'source_label': patch_info['source_label'],
+                            'coordinates': patch_info['coordinates'],
+                            'patch_id': patch_info['patch_id'],
+                            'batch_file': f"batch_{batch_num}.pkl"
+                        }
+                        all_patch_metadata.append(metadata)
+                    
+                    # Clear image data from memory immediately
+                    del image, label, image_patches
+                    
+                except Exception as e:
+                    print(f"   ❌ Error processing {img_path.name}: {e}")
                     continue
+            
+            # Save this batch to disk
+            if batch_patches:
+                batch_file = patches_dir / f"batch_{batch_num}.pkl"
+                with open(batch_file, 'wb') as f:
+                    pickle.dump(batch_patches, f)
                 
-                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                h, w = image.shape[:2]
+                print(f"   💾 Saved batch {batch_num}: {len(batch_patches)} patches")
                 
-                # Generate patches from this image
-                image_patches = self._extract_patches_from_image(
-                    image, label, img_path.stem, h, w
-                )
-                
-                patches.extend(image_patches)
-                
-            except Exception as e:
-                print(f"   ❌ Error processing {img_path.name}: {e}")
-                continue
+                # Clear batch from memory
+                del batch_patches
+                batch_num += 1
+            
+            # Force garbage collection
+            import gc
+            gc.collect()
         
-        print(f"   Generated {len(patches)} patches")
+        print(f"   Generated {len(all_patch_metadata)} patches in {batch_num} batches")
         
-        # Cache the patches
-        if self.cache_patches:
-            cache_file = self._get_cache_file()
-            cache_data = {
-                'patches': patches,
-                'image_count': len(image_files),
-                'generated_at': str(Path.cwd()),
-                'parameters': {
-                    'patch_size': self.patch_size,
-                    'stride_factor': self.stride / self.patch_size,
-                    'min_valid_pixels': self.min_valid_pixels,
-                    'edge_enhancement': self.edge_enhancement
-                }
+        # Save master metadata file
+        cache_file = self._get_cache_file()
+        cache_data = {
+            'patch_metadata': all_patch_metadata,
+            'image_count': len(image_files),
+            'total_patches': len(all_patch_metadata),
+            'num_batches': batch_num,
+            'generated_at': str(Path.cwd()),
+            'parameters': {
+                'patch_size': self.patch_size,
+                'stride_factor': self.stride / self.patch_size,
+                'min_valid_pixels': self.min_valid_pixels,
+                'edge_enhancement': self.edge_enhancement
             }
-            
-            with open(cache_file, 'wb') as f:
-                pickle.dump(cache_data, f)
-            
-            print(f"   💾 Cached patches: {cache_file.name}")
+        }
         
-        return patches
+        with open(cache_file, 'wb') as f:
+            pickle.dump(cache_data, f)
+        
+        print(f"   💾 Cached metadata: {cache_file.name}")
+        
+        return all_patch_metadata
     
     def _load_image_files(self) -> List[Tuple[Path, Path]]:
         """Load matching image and label file pairs."""
@@ -446,42 +499,112 @@ class DroneDeploy1024Dataset(Dataset):
         """Analyze class distribution in the dataset."""
         
         if len(self.patches) == 0:
+            print("⚠️  No patches available for distribution analysis")
             return
         
-        # Sample patches for analysis
-        sample_size = min(100, len(self.patches))
-        sample_indices = random.sample(range(len(self.patches)), sample_size)
+        # Sample a subset for analysis to avoid loading too much data
+        max_analysis_samples = min(100, len(self.patches))
+        sample_indices = np.random.choice(len(self.patches), max_analysis_samples, replace=False)
         
         class_counts = Counter()
-        total_pixels = 0
+        total_patches_analyzed = 0
+        
+        print(f"\n📊 Class Distribution ({max_analysis_samples} patches sampled):")
         
         for idx in sample_indices:
-            label_patch = self.patches[idx]['label_patch']
-            unique, counts = np.unique(label_patch, return_counts=True)
-            
-            for class_id, count in zip(unique, counts):
-                class_counts[class_id] += count
-                total_pixels += count
+            try:
+                patch_metadata = self.patches[idx]
+                
+                # Load actual patch data
+                if 'batch_file' in patch_metadata:
+                    # New metadata format
+                    batch_file = patch_metadata['batch_file']
+                    patch_id = patch_metadata['patch_id']
+                    
+                    # Load batch if not cached
+                    if batch_file not in self._batch_cache:
+                        self._load_batch(batch_file)
+                    
+                    # Find the actual patch data
+                    batch_patches = self._batch_cache[batch_file]
+                    actual_patch = None
+                    for patch in batch_patches:
+                        if patch['patch_id'] == patch_id:
+                            actual_patch = patch
+                            break
+                    
+                    if actual_patch is None:
+                        continue
+                    
+                    label_patch = actual_patch['label_patch']
+                else:
+                    # Legacy format
+                    label_patch = patch_metadata['label_patch']
+                
+                # Count pixels for each class
+                unique, counts = np.unique(label_patch, return_counts=True)
+                for class_id, count in zip(unique, counts):
+                    class_counts[class_id] += count
+                
+                total_patches_analyzed += 1
+                
+            except Exception as e:
+                continue  # Skip problematic patches
         
-        print(f"\n📊 Class Distribution ({sample_size} patches sampled):")
+        if total_patches_analyzed == 0:
+            print("⚠️  No patches could be analyzed")
+            return
+        
+        # Calculate percentages and display
+        total_pixels = sum(class_counts.values())
+        
         for class_id in range(6):
-            class_name = self.LANDING_CLASSES[class_id]
-            safety = self.LANDING_SAFETY[class_id]
             count = class_counts.get(class_id, 0)
             percentage = (count / total_pixels * 100) if total_pixels > 0 else 0
-            print(f"   {class_id} ({class_name:12}) [{safety:15}]: {percentage:5.1f}% ({count:,} pixels)")
+            class_name = self.DRONEDEPLOY_TO_LANDING.get(class_id, f"class_{class_id}")
+            landing_category = self.LANDING_CLASSES.get(class_id, "UNKNOWN")
+            
+            print(f"   {class_id} ({class_name:<10}) [{landing_category:<15}]: {percentage:5.1f}% ({count:,} pixels)")
+        
+        print(f"   Total patches analyzed: {total_patches_analyzed}")
     
     def __len__(self) -> int:
         return len(self.patches)
     
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
-        """Get a patch by index."""
+        """Get a patch by index - loads patch data on-demand."""
         
-        patch_info = self.patches[idx]
+        patch_metadata = self.patches[idx]
         
-        # Get patches
-        image = patch_info['image_patch'].copy()
-        mask = patch_info['label_patch'].copy()
+        # Check if this is metadata (new format) or actual patch data (legacy)
+        if 'batch_file' in patch_metadata:
+            # New metadata format - load actual patch data on-demand
+            batch_file = patch_metadata['batch_file']
+            patch_id = patch_metadata['patch_id']
+            
+            # Load batch if not cached
+            if batch_file not in self._batch_cache:
+                self._load_batch(batch_file)
+            
+            # Find the actual patch data in the loaded batch
+            batch_patches = self._batch_cache[batch_file]
+            actual_patch = None
+            for patch in batch_patches:
+                if patch['patch_id'] == patch_id:
+                    actual_patch = patch
+                    break
+            
+            if actual_patch is None:
+                raise ValueError(f"Patch {patch_id} not found in batch {batch_file}")
+            
+            # Get patches from actual patch data
+            image = actual_patch['image_patch'].copy()
+            mask = actual_patch['label_patch'].copy()
+            
+        else:
+            # Legacy format - patch data is directly available
+            image = patch_metadata['image_patch'].copy()
+            mask = patch_metadata['label_patch'].copy()
         
         # Apply augmentations
         if self.transform:
@@ -499,49 +622,118 @@ class DroneDeploy1024Dataset(Dataset):
         result = {
             'image': image,
             'mask': mask,
-            'patch_id': patch_info['patch_id']
+            'patch_id': patch_metadata['patch_id']
         }
         
         # Add edge map if available
-        if 'edge_map' in patch_info:
-            edge_map = patch_info['edge_map']
-            if not isinstance(edge_map, torch.Tensor):
-                edge_map = torch.from_numpy(edge_map).float()
-            result['edge_map'] = edge_map
+        if 'batch_file' in patch_metadata:
+            # For new format, check actual patch
+            if actual_patch and 'edge_map' in actual_patch:
+                edge_map = actual_patch['edge_map']
+                if not isinstance(edge_map, torch.Tensor):
+                    edge_map = torch.from_numpy(edge_map).float()
+                result['edge_map'] = edge_map
+        else:
+            # For legacy format
+            if 'edge_map' in patch_metadata:
+                edge_map = patch_metadata['edge_map']
+                if not isinstance(edge_map, torch.Tensor):
+                    edge_map = torch.from_numpy(edge_map).float()
+                result['edge_map'] = edge_map
         
         return result
+    
+    def _load_batch(self, batch_file: str):
+        """Load a batch file into memory cache."""
+        
+        # Manage cache size - remove oldest batch if needed
+        if len(self._batch_cache) >= self._max_cached_batches:
+            # Remove the first (oldest) cached batch
+            oldest_batch = next(iter(self._batch_cache))
+            del self._batch_cache[oldest_batch]
+        
+        # Load the requested batch
+        batch_path = self.cache_dir / "patches" / batch_file
+        
+        try:
+            with open(batch_path, 'rb') as f:
+                batch_data = pickle.load(f)
+            
+            self._batch_cache[batch_file] = batch_data
+            
+        except Exception as e:
+            raise ValueError(f"Failed to load batch {batch_file}: {e}")
     
     def get_class_weights(self) -> torch.Tensor:
         """Compute class weights for balanced training."""
         
-        # Sample patches for weight computation
-        sample_size = min(200, len(self.patches))
-        sample_indices = random.sample(range(len(self.patches)), sample_size)
+        if len(self.patches) == 0:
+            # Return uniform weights if no patches
+            return torch.ones(6)
+        
+        # Sample distribution analysis from a subset of patches
+        max_samples = min(100, len(self.patches))
+        sample_indices = np.random.choice(len(self.patches), max_samples, replace=False)
         
         class_counts = Counter()
         
         for idx in sample_indices:
-            label_patch = self.patches[idx]['label_patch']
-            unique, counts = np.unique(label_patch, return_counts=True)
-            
-            for class_id, count in zip(unique, counts):
-                class_counts[class_id] += count
+            try:
+                patch_metadata = self.patches[idx]
+                
+                # Load actual patch data
+                if 'batch_file' in patch_metadata:
+                    # New metadata format - load on-demand
+                    batch_file = patch_metadata['batch_file']
+                    patch_id = patch_metadata['patch_id']
+                    
+                    # Load batch if not cached
+                    if batch_file not in self._batch_cache:
+                        self._load_batch(batch_file)
+                    
+                    # Find the actual patch data
+                    batch_patches = self._batch_cache[batch_file]
+                    actual_patch = None
+                    for patch in batch_patches:
+                        if patch['patch_id'] == patch_id:
+                            actual_patch = patch
+                            break
+                    
+                    if actual_patch is None:
+                        continue
+                    
+                    label_patch = actual_patch['label_patch']
+                else:
+                    # Legacy format
+                    label_patch = patch_metadata['label_patch']
+                
+                # Count classes in this patch
+                unique, counts = np.unique(label_patch, return_counts=True)
+                for class_id, count in zip(unique, counts):
+                    class_counts[class_id] += count
+                    
+            except Exception as e:
+                print(f"   ⚠️  Error processing patch for class weights: {e}")
+                continue
+        
+        if not class_counts:
+            # Fallback if no valid patches found
+            return torch.ones(6)
         
         # Compute inverse frequency weights
         total_pixels = sum(class_counts.values())
         class_weights = torch.ones(6)
         
         for class_id in range(6):
-            count = class_counts.get(class_id, 1)
+            count = class_counts.get(class_id, 1)  # Avoid division by zero
             class_weights[class_id] = total_pixels / (6 * count)
         
-        # Apply safety-critical multipliers
-        class_weights[3] *= 3.0  # Water (critical hazard)
-        class_weights[2] *= 2.0  # Building (obstacle)
-        class_weights[4] *= 2.0  # Car (dynamic obstacle)
+        # Apply safety multipliers for UAV landing safety
+        class_weights[3] *= 2.0  # Water (critical hazard)
+        class_weights[4] *= 1.5  # Car (obstacle)
         
-        # Normalize and clip
-        class_weights = torch.clamp(class_weights, min=0.1, max=20.0)
+        # Normalize and clip extreme values
+        class_weights = torch.clamp(class_weights, min=0.1, max=10.0)
         
         return class_weights
 

@@ -189,6 +189,7 @@ class RTX4060TiTrainer:
         
         # Create data loaders with memory optimization
         train_loader = DataLoader(
+            
             datasets['train'],
             batch_size=self.config['training']['batch_size'],
             shuffle=True,

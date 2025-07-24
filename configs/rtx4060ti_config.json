@@ -1,43 +1,35 @@
 {
     "model": {
-        "type": "standard",
+        "name": "EdgeLandingNet",
         "num_classes": 6,
         "input_size": 512,
-        "use_uncertainty": false
+        "uncertainty_estimation": false
     },
     "training": {
-        "batch_size": 4,
-        "num_epochs": 5,
-        "learning_rate": 1e-3,
+        "epochs": 30,
+        "batch_size": 8,
+        "learning_rate": 0.001,
         "weight_decay": 1e-4,
-        "num_workers": 4,
-        "pin_memory": true,
+        "gradient_accumulation_steps": 1,
         "mixed_precision": true,
-        "gradient_accumulation_steps": 2
+        "num_workers": 4,
+        "pin_memory": true
     },
-    "data": {
+    "dataset": {
         "patch_size": 512,
-        "stride_factor": 0.75,
-        "min_valid_pixels": 0.15,
+        "stride_factor": 0.5,
+        "min_valid_pixels": 0.1,
         "augmentation": true,
-        "edge_enhancement": false,
         "cache_patches": true
     },
     "optimization": {
-        "memory_efficient": true,
-        "compile_model": false,
-        "cache_dataset": false,
-        "cpu_offload": false
+        "gpu_memory_fraction": 0.9,
+        "deterministic": false,
+        "benchmark": true
     },
-    "hardware": {
-        "device": "cuda",
-        "gpu_memory_fraction": 0.85,
-        "benchmark_cudnn": true,
-        "deterministic": false
-    },
-    "checkpointing": {
-        "save_every": 2,
-        "keep_last": 2,
-        "save_optimizer": false
+    "scheduler": {
+        "type": "cosine",
+        "warmup_epochs": 2,
+        "min_lr": 1e-6
     }
 } 
