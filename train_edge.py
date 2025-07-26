@@ -34,7 +34,11 @@ import cv2
 
 # Import our edge components
 from models.edge_landing_net import EdgeLandingNet, create_edge_model, benchmark_model
-from datasets.edge_landing_dataset import create_edge_datasets
+
+# Import existing dataset infrastructure 
+from datasets.semantic_drone_dataset import SemanticDroneDataset
+from datasets.dronedeploy_1024_dataset import DroneDeploy1024Dataset
+from datasets.udd6_dataset import UDD6Dataset
 
 warnings.filterwarnings('ignore')
 
@@ -471,9 +475,89 @@ class EdgeLandingTrainer:
         return self.training_history
 
 
+def create_datasets(sdd_data_root, dronedeploy_data_root, udd6_data_root, input_size=256):
+    """Create datasets using existing infrastructure."""
+    from torch.utils.data import ConcatDataset
+    
+    # Training datasets
+    train_datasets = []
+    val_datasets = []
+    
+    # Semantic Drone Dataset
+    if Path(sdd_data_root).exists():
+        sdd_train = SemanticDroneDataset(
+            data_root=sdd_data_root,
+            split="train",
+            class_mapping="unified_6_class",
+            target_resolution=(input_size, input_size),
+            use_random_crops=True,
+            crops_per_image=8  # Extreme augmentation via multiple crops
+        )
+        sdd_val = SemanticDroneDataset(
+            data_root=sdd_data_root,
+            split="val", 
+            class_mapping="unified_6_class",
+            target_resolution=(input_size, input_size),
+            use_random_crops=False,
+            crops_per_image=1
+        )
+        train_datasets.append(sdd_train)
+        val_datasets.append(sdd_val)
+        print(f"   Loaded SDD: {len(sdd_train)} train, {len(sdd_val)} val")
+    
+    # DroneDeploy Dataset
+    if Path(dronedeploy_data_root).exists():
+        dd_train = DroneDeploy1024Dataset(
+            data_root=dronedeploy_data_root,
+            split="train",
+            patch_size=input_size,
+            augmentation=True
+        )
+        dd_val = DroneDeploy1024Dataset(
+            data_root=dronedeploy_data_root,
+            split="val",
+            patch_size=input_size,
+            augmentation=False
+        )
+        train_datasets.append(dd_train)
+        val_datasets.append(dd_val)
+        print(f"   Loaded DroneDeploy: {len(dd_train)} train, {len(dd_val)} val")
+    
+    # UDD6 Dataset
+    if Path(udd6_data_root).exists():
+        udd_train = UDD6Dataset(
+            data_root=udd6_data_root,
+            split="train",
+            target_resolution=(input_size, input_size),
+            use_random_crops=True,
+            crops_per_image=8  # Extreme augmentation
+        )
+        udd_val = UDD6Dataset(
+            data_root=udd6_data_root,
+            split="val",
+            target_resolution=(input_size, input_size),
+            use_random_crops=False,
+            crops_per_image=1
+        )
+        train_datasets.append(udd_train)
+        val_datasets.append(udd_val)
+        print(f"   Loaded UDD6: {len(udd_train)} train, {len(udd_val)} val")
+    
+    # Combine datasets
+    if not train_datasets:
+        raise ValueError("No datasets found! Check your data paths.")
+    
+    train_dataset = ConcatDataset(train_datasets)
+    val_dataset = ConcatDataset(val_datasets)
+    
+    return train_dataset, val_dataset
+
+
 def main():
     parser = argparse.ArgumentParser(description='Train Edge UAV Landing Model')
-    parser.add_argument('--data_root', default='../datasets', help='Root directory for datasets')
+    parser.add_argument('--sdd_data_root', required=True, help='Semantic Drone Dataset path')
+    parser.add_argument('--dronedeploy_data_root', required=True, help='DroneDeploy dataset path')
+    parser.add_argument('--udd6_data_root', required=True, help='UDD6 dataset path')
     parser.add_argument('--batch_size', type=int, default=16, help='Batch size')
     parser.add_argument('--num_epochs', type=int, default=50, help='Number of training epochs')
     parser.add_argument('--lr', type=float, default=1e-3, help='Learning rate')
@@ -494,27 +578,34 @@ def main():
     
     print(f"🚁 Edge UAV Landing Training")
     print(f"   Device: {device}")
-    print(f"   Data root: {args.data_root}")
+    print(f"   SDD data: {args.sdd_data_root}")
+    print(f"   DroneDeploy data: {args.dronedeploy_data_root}")
+    print(f"   UDD6 data: {args.udd6_data_root}")
     print(f"   Model type: {args.model_type}")
     print(f"   Batch size: {args.batch_size}")
     print(f"   Input size: {args.input_size}")
     print(f"   Epochs: {args.num_epochs}")
     
-    # Create datasets
+    # Create datasets using existing infrastructure
     print(f"\n📚 Loading datasets...")
-    datasets = create_edge_datasets(
-        data_root=args.data_root,
-        input_size=args.input_size,
-        extreme_augmentation=True
-    )
-    
-    if len(datasets['train']) == 0:
-        print("❌ No training data found! Check dataset paths.")
+    try:
+        train_dataset, val_dataset = create_datasets(
+            sdd_data_root=args.sdd_data_root,
+            dronedeploy_data_root=args.dronedeploy_data_root,
+            udd6_data_root=args.udd6_data_root,
+            input_size=args.input_size
+        )
+        
+        print(f"   Total train samples: {len(train_dataset)}")
+        print(f"   Total val samples: {len(val_dataset)}")
+        
+    except Exception as e:
+        print(f"❌ Dataset creation failed: {e}")
         return
     
     # Create data loaders
     train_loader = DataLoader(
-        datasets['train'],
+        train_dataset,
         batch_size=args.batch_size,
         shuffle=True,
         num_workers=args.num_workers,
@@ -523,7 +614,7 @@ def main():
     )
     
     val_loader = DataLoader(
-        datasets['val'],
+        val_dataset,
         batch_size=args.batch_size,
         shuffle=False,
         num_workers=args.num_workers,
@@ -538,8 +629,8 @@ def main():
         input_size=args.input_size
     )
     
-    # Get class weights
-    class_weights = datasets['train'].get_class_weights()
+    # Create class weights (simplified for 6 classes)
+    class_weights = torch.tensor([1.0, 2.0, 1.5, 3.0, 5.0, 1.0])  # Emphasize hazards and obstacles
     print(f"   Class weights: {class_weights}")
     
     # Create trainer
