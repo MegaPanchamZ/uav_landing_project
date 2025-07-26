@@ -95,6 +95,11 @@ class SemanticDroneDataset(Dataset):
         # Initialize class mapping
         self._setup_class_mapping()
         
+        # OPTIMIZATION: Create fast lookup table for class mapping
+        self.mapping_lut = np.zeros(256, dtype=np.uint8)
+        for original_class, landing_class in self.class_mapping.items():
+            self.mapping_lut[original_class] = landing_class
+        
         # Load dataset information
         self.images_dir = self.data_root / "original_images"
         self.labels_dir = self.data_root / "label_images_semantic"
@@ -220,7 +225,7 @@ class SemanticDroneDataset(Dataset):
     
     def _get_item_from_memory(self, idx):
         """
-        NEW: Get item from memory cache - eliminates all I/O bottlenecks.
+        OPTIMIZED: Get item from memory cache - eliminates all I/O bottlenecks and conversion overhead.
         """
         if self.use_random_crops:
             # Handle random crops
@@ -229,31 +234,31 @@ class SemanticDroneDataset(Dataset):
         else:
             cache_data = self.memory_cache[idx]
         
-        # Get data from memory (instant access!)
-        image_array = cache_data['image'].copy()  # Copy to avoid mutation
-        mask_array = cache_data['mask'].copy()
+        # Get data from memory (instant access!) - already in numpy format
+        image = cache_data['image'].copy()  # Copy to avoid mutation
+        mask = cache_data['mask'].copy()
         
-        # Convert to PIL for transforms
-        image = Image.fromarray(image_array)
-        mask = Image.fromarray(mask_array.astype(np.uint8))
-        
-        # Apply random crops if needed
+        # Apply random crops if needed (working directly with numpy arrays)
         if self.use_random_crops:
-            image, mask = self._apply_random_crop(image, mask)
+            image, mask = self._apply_random_crop_numpy(image, mask)
         
-        # Apply transforms
+        # Apply transforms (albumentations works natively with numpy)
         if self.transform:
-            image = self.transform(image)
-        else:
-            image = transforms.ToTensor()(image)
+            transformed = self.transform(image=image, mask=mask)
+            image = transformed['image']
+            mask = transformed['mask']
         
-        mask = torch.from_numpy(np.array(mask)).long()
+        # Convert to tensors if not already done by transforms
+        if not isinstance(image, torch.Tensor):
+            image = torch.from_numpy(image).permute(2, 0, 1).float() / 255.0
+        if not isinstance(mask, torch.Tensor):
+            mask = torch.from_numpy(mask).long()
         
         return {
             'image': image,
             'mask': mask,
-            'img_path': cache_data['img_path'],
-            'mask_path': cache_data['mask_path']
+            'image_path': cache_data['img_path'],
+            'original_shape': mask.shape
         }
     
     def _get_item_from_disk(self, idx):
@@ -348,15 +353,9 @@ class SemanticDroneDataset(Dataset):
         return sample
     
     def _map_classes(self, label: np.ndarray) -> np.ndarray:
-        """Map original 24 classes to landing classes."""
-        
-        mapped_label = np.zeros_like(label, dtype=np.uint8)
-        
-        for original_class, landing_class in self.class_mapping.items():
-            mask = (label == original_class)
-            mapped_label[mask] = landing_class
-        
-        return mapped_label
+        """Map original 24 classes to landing classes using fast vectorized lookup."""
+        # OPTIMIZATION: Use vectorized lookup table - orders of magnitude faster
+        return self.mapping_lut[label]
     
     def _compute_confidence_map(self, original_label: np.ndarray, mapped_label: np.ndarray) -> torch.Tensor:
         """Compute confidence map based on class mapping certainty."""
@@ -486,12 +485,40 @@ class SemanticDroneDataset(Dataset):
         print(f"   • Samples in memory: {len(self.memory_cache)}")
         print(f"   • Estimated memory usage: ~{memory_usage_gb:.1f}GB")
         print(f"   • CPU bottleneck: ELIMINATED! 🚀")
+    
+    def _apply_random_crop_numpy(self, image: np.ndarray, mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        OPTIMIZATION: Apply random crop directly on numpy arrays without PIL conversion.
+        """
+        crop_h, crop_w = self.target_resolution
+        img_h, img_w = image.shape[:2]
+        
+        # Ensure crop doesn't exceed image size
+        crop_h = min(crop_h, img_h)
+        crop_w = min(crop_w, img_w)
+        
+        # Random crop coordinates
+        if img_h > crop_h:
+            start_h = np.random.randint(0, img_h - crop_h + 1)
+        else:
+            start_h = 0
+        
+        if img_w > crop_w:
+            start_w = np.random.randint(0, img_w - crop_w + 1)
+        else:
+            start_w = 0
+        
+        # Extract crop directly from numpy arrays
+        image_crop = image[start_h:start_h + crop_h, start_w:start_w + crop_w]
+        mask_crop = mask[start_h:start_h + crop_h, start_w:start_w + crop_w]
+        
+        return image_crop, mask_crop
 
 
 def create_semantic_drone_transforms(
     input_size: Tuple[int, int] = (512, 512),
     is_training: bool = True,
-    advanced_augmentation: bool = False,  # Changed default to False for speed
+    augmentation_profile: str = "balanced",  # "fast", "balanced", "advanced"
     use_resize: bool = False  # Don't resize if using random crops
 ) -> A.Compose:
     """
@@ -500,7 +527,7 @@ def create_semantic_drone_transforms(
     Args:
         input_size: Target image size
         is_training: Whether to apply training augmentations
-        advanced_augmentation: Use advanced augmentation techniques (slower)
+        augmentation_profile: Augmentation intensity ("fast", "balanced", "advanced")
         use_resize: Whether to include resize transform (disable when using random crops)
     """
     
@@ -511,11 +538,33 @@ def create_semantic_drone_transforms(
         transforms_list.append(A.Resize(input_size[0], input_size[1], interpolation=cv2.INTER_LINEAR))
     
     if is_training:
-        if advanced_augmentation:
-            # Advanced augmentations for better generalization (slower)
+        if augmentation_profile == "fast":
+            # OPTIMIZATION: Minimal, fast augmentations only
             transforms_list.extend([
                 A.HorizontalFlip(p=0.5),
-                A.VerticalFlip(p=0.2),  # Aerial imagery can be flipped
+                A.RandomRotate90(p=0.3),
+                A.RandomBrightnessContrast(brightness_limit=0.15, contrast_limit=0.15, p=0.4),
+            ])
+        elif augmentation_profile == "balanced":
+            # OPTIMIZATION: Balanced augmentations - good variety without slow operations
+            transforms_list.extend([
+                A.HorizontalFlip(p=0.5),
+                A.VerticalFlip(p=0.3),  # Aerial imagery can be flipped
+                A.RandomRotate90(p=0.5),
+                A.ShiftScaleRotate(
+                    shift_limit=0.05, scale_limit=0.1, rotate_limit=10,
+                    border_mode=cv2.BORDER_CONSTANT, value=0, p=0.3  # Reduced probability
+                ),
+                A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.6),
+                A.HueSaturationValue(hue_shift_limit=8, sat_shift_limit=12, val_shift_limit=8, p=0.4),
+                A.GaussianBlur(blur_limit=(3, 5), p=0.2),  # Only fast blur
+                A.GaussNoise(var_limit=(10, 30), p=0.2),
+            ])
+        elif augmentation_profile == "advanced":
+            # Advanced augmentations for best generalization (slower)
+            transforms_list.extend([
+                A.HorizontalFlip(p=0.5),
+                A.VerticalFlip(p=0.2),
                 A.RandomRotate90(p=0.5),
                 A.ShiftScaleRotate(
                     shift_limit=0.1, scale_limit=0.2, rotate_limit=15,
@@ -523,27 +572,15 @@ def create_semantic_drone_transforms(
                 ),
                 A.OneOf([
                     A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3),
-                    A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
                     A.HueSaturationValue(hue_shift_limit=10, sat_shift_limit=15, val_shift_limit=10)
                 ], p=0.7),
                 A.OneOf([
                     A.GaussianBlur(blur_limit=(3, 7)),
-                    A.MotionBlur(blur_limit=5),
-                    A.MedianBlur(blur_limit=3)
+                    A.MotionBlur(blur_limit=5)
                 ], p=0.3),
-                A.OneOf([
-                    A.GaussNoise(var_limit=(10, 50)),
-                    A.ISONoise(color_shift=(0.01, 0.05), intensity=(0.1, 0.5))
-                ], p=0.2),
-                A.GridDistortion(num_steps=5, distort_limit=0.2, p=0.2),
-                A.OpticalDistortion(distort_limit=0.1, shift_limit=0.1, p=0.2),
-            ])
-        else:
-            # Fast augmentations for speed
-            transforms_list.extend([
-                A.HorizontalFlip(p=0.5),
-                A.RandomRotate90(p=0.3),
-                A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.3),
+                A.GaussNoise(var_limit=(10, 50), p=0.2),
+                A.GridDistortion(num_steps=5, distort_limit=0.2, p=0.15),  # Reduced probability
+                A.OpticalDistortion(distort_limit=0.1, shift_limit=0.1, p=0.15),  # Reduced probability
             ])
     
     # Normalization (ImageNet stats)

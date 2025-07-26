@@ -785,7 +785,8 @@ def main():
                 split="train",
                 transform=create_semantic_drone_transforms(
                     input_size=(512, 512),
-                    is_training=True
+                    is_training=True,
+                    augmentation_profile="balanced"  # OPTIMIZATION: Use balanced profile
                 ),
                 class_mapping="advanced_6_class"
             )
@@ -838,7 +839,8 @@ def main():
             
             transforms = create_semantic_drone_transforms(
                 input_size=(512, 512),
-                is_training=True
+                is_training=True,
+                augmentation_profile="balanced"  # OPTIMIZATION: Use balanced profile for speed
             )
             
             train_dataset = SemanticDroneDataset(
@@ -853,7 +855,8 @@ def main():
                 split="val",
                 transform=create_semantic_drone_transforms(
                     input_size=(512, 512),
-                    is_training=False
+                    is_training=False,
+                    augmentation_profile="fast"  # OPTIMIZATION: Fast for validation
                 ),
                 class_mapping="advanced_6_class"
             )

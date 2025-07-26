@@ -100,6 +100,12 @@ class DroneDeploy1024Dataset(Dataset):
         
         print(f"🚁 Loading DroneDeploy dataset for {split}...")
         
+        # OPTIMIZATION: Create fast lookup table for class mapping
+        self.mapping_lut = np.zeros(256, dtype=np.uint8)
+        for dd_class, landing_class in self.DRONEDEPLOY_TO_LANDING.items():
+            if dd_class < 256:  # Ensure valid index
+                self.mapping_lut[dd_class] = landing_class
+        
         # Check for cached patches first
         cache_file = self._get_cache_file()
         if self.cache_patches and cache_file.exists():
@@ -362,15 +368,11 @@ class DroneDeploy1024Dataset(Dataset):
         return patches_list
     
     def _map_to_landing_classes(self, dronedeploy_label: np.ndarray) -> np.ndarray:
-        """Map DroneDeploy classes to 6 landing classes."""
-        
-        landing_label = np.full_like(dronedeploy_label, 5, dtype=np.uint8)  # Default to clutter
-        
-        for dd_class, landing_class in self.DRONEDEPLOY_TO_LANDING.items():
-            mask = (dronedeploy_label == dd_class)
-            landing_label[mask] = landing_class
-        
-        return landing_label
+        """Map DroneDeploy classes to 6 landing classes using fast vectorized lookup."""
+        # OPTIMIZATION: Use vectorized lookup table - orders of magnitude faster
+        # Clip values to valid range to prevent index errors
+        clipped_label = np.clip(dronedeploy_label, 0, 255)
+        return self.mapping_lut[clipped_label]
     
     def _is_valid_patch(self, label_patch: np.ndarray) -> bool:
         """Check if patch has sufficient valid content."""

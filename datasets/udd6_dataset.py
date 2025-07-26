@@ -92,6 +92,11 @@ class UDD6Dataset(Dataset):
         for class_id, info in self.udd6_classes.items():
             self.rgb_to_class[info["rgb"]] = class_id
         
+        # OPTIMIZATION: Create fast lookup table for class mapping
+        self.mapping_lut = np.zeros(256, dtype=np.uint8)
+        for udd6_class, landing_class in self.class_mapping.items():
+            self.mapping_lut[udd6_class] = landing_class
+        
         # Find dataset files
         self._find_dataset_files()
         self._create_splits()
@@ -321,14 +326,9 @@ class UDD6Dataset(Dataset):
         return label
     
     def _map_to_landing_classes(self, udd6_label: np.ndarray) -> np.ndarray:
-        """Map UDD6 classes to unified landing classes."""
-        landing_label = np.zeros_like(udd6_label, dtype=np.uint8)
-        
-        for udd6_class, landing_class in self.class_mapping.items():
-            mask = (udd6_label == udd6_class)
-            landing_label[mask] = landing_class
-        
-        return landing_label
+        """Map UDD6 classes to unified landing classes using fast vectorized lookup."""
+        # OPTIMIZATION: Use vectorized lookup table - orders of magnitude faster
+        return self.mapping_lut[udd6_label]
     
     def get_class_weights(self) -> torch.Tensor:
         """Compute class weights for balanced training."""
