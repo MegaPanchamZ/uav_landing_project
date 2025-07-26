@@ -1,79 +1,93 @@
-# Core ML/DL packages
+# UAV Landing System - Comprehensive Requirements
+# ==============================================
+# 
+# Core machine learning and deep learning
 torch>=2.0.0
 torchvision>=0.15.0
 torchaudio>=2.0.0
 
-# Computer Vision
-opencv-python>=4.8.0
-albumentations>=1.3.1
+# Computer vision and image processing
+opencv-python>=4.7.0
+opencv-contrib-python>=4.7.0
 Pillow>=9.5.0
+scikit-image>=0.20.0
+albumentations>=1.3.0
 
-# Data handling
+# Scientific computing and data manipulation
 numpy>=1.24.0
-pandas>=2.0.0
 scipy>=1.10.0
-
-# Visualization and monitoring
+pandas>=2.0.0
 matplotlib>=3.7.0
 seaborn>=0.12.0
-wandb>=0.15.0
+
+# Machine learning utilities
+scikit-learn>=1.3.0
+tqdm>=4.65.0
 tensorboard>=2.13.0
 
-# Progress bars and utilities
-tqdm>=4.65.0
-rich>=13.0.0
-
-# Image processing
-scikit-image>=0.21.0
-imageio>=2.31.0
-
-# Model utilities
+# Neural network optimizations
 timm>=0.9.0
-segmentation-models-pytorch>=0.3.3
 
-# Configuration and logging
-pyyaml>=6.0
-configargparse>=1.7.0
+# Experiment tracking and monitoring (optional but recommended)
+wandb>=0.15.0
 
-# Dataset utilities
-kaggle>=1.5.16
-gdown>=4.7.1
+# Dataset downloading utilities
+kaggle>=1.5.0
+gdown>=4.7.0
+requests>=2.31.0
 
-# Metrics and evaluation
-scikit-learn>=1.3.0
-torchmetrics>=1.0.0
+# Development and testing tools
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.7.0
+flake8>=6.0.0
+mypy>=1.5.0
 
-# Memory profiling (optional)
-psutil>=5.9.0
-py3nvml>=0.2.7
-
-# Mixed precision training
-nvidia-ml-py3>=7.352.0
-
-# For notebook support (optional)
+# Jupyter and notebooks (for experimentation)
 jupyter>=1.0.0
-ipywidgets>=8.0.0
+ipykernel>=6.25.0
+ipywidgets>=8.1.0
 
-# Fast data loading
-lmdb>=1.4.1
+# System monitoring
+psutil>=5.9.0
+GPUtil>=1.4.0
+pynvml>=11.5.0
 
-# Geometric transformations
-kornia>=0.7.0
+# Scallop for neuro-symbolic computing
+# Note: Install from source if needed
+# git+https://github.com/scallop-lang/scallop.git
 
-# For distributed training (optional)
-accelerate>=0.21.0
+# Additional utilities
+pathlib>=1.0.0
+typing-extensions>=4.7.0
+pyyaml>=6.0.0
+click>=8.1.0
 
-# Color space conversions
-colorama>=0.4.6
+# Optional: For advanced visualizations
+plotly>=5.15.0
+bokeh>=3.2.0
 
-# File handling
-pathlib2>=2.3.7
-
-# For ONNX export (optional)
+# Optional: For model deployment
 onnx>=1.14.0
 onnxruntime>=1.15.0
+tensorrt>=8.6.0  # For NVIDIA deployment
 
-# Development tools
-black>=23.0.0
-flake8>=6.0.0
-pytest>=7.4.0
+# Optional: For distributed training
+accelerate>=0.21.0
+
+# Platform-specific optimizations
+# Uncomment based on your platform:
+# 
+# For CUDA support (Linux/Windows with NVIDIA GPU):
+# torch[cuda] 
+# 
+# For Apple Silicon (M1/M2 Macs):
+# torch[mps]
+# 
+# For Intel optimization:
+# intel-extension-for-pytorch
+
+# Development dependencies (optional)
+pre-commit>=3.3.0
+sphinx>=7.1.0
+sphinx-rtd-theme>=1.3.0
