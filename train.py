@@ -475,11 +475,11 @@ class UniversalTrainer:
         else:
             class_weights = None
         
-        # Setup training components - USE PROVEN MULTI-COMPONENT LOSS
-        print("🎯 Using proven multi-component loss from successful EdgeLandingNet...")
+        # FIXED: Start with simpler, more stable loss function
+        print("🎯 Using optimized Focal + Dice loss (boundary loss causing instability)...")
         
-        # Create the successful multi-component loss function
-        class EdgeLandingLoss(nn.Module):
+        # Create simplified but effective loss function
+        class StableLandingLoss(nn.Module):
             def __init__(self, class_weights, alpha=0.25, gamma=2.0):
                 super().__init__()
                 self.class_weights = class_weights
@@ -511,46 +511,23 @@ class UniversalTrainer:
                 
                 return dice_loss / pred.size(1)
             
-            def _boundary_loss(self, pred, target):
-                """Boundary loss for edge preservation."""
-                # Sobel filters for edge detection
-                sobel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], 
-                                     dtype=torch.float32, device=pred.device).unsqueeze(0).unsqueeze(0)
-                sobel_y = torch.tensor([[-1, -2, -1], [0, 0, 0], [1, 2, 1]], 
-                                     dtype=torch.float32, device=pred.device).unsqueeze(0).unsqueeze(0)
-                
-                # Compute edges for prediction and target
-                pred_edges = torch.sqrt(
-                    F.conv2d(pred.argmax(1).float().unsqueeze(1), sobel_x, padding=1) ** 2 +
-                    F.conv2d(pred.argmax(1).float().unsqueeze(1), sobel_y, padding=1) ** 2
-                )
-                
-                target_edges = torch.sqrt(
-                    F.conv2d(target.float().unsqueeze(1), sobel_x, padding=1) ** 2 +
-                    F.conv2d(target.float().unsqueeze(1), sobel_y, padding=1) ** 2
-                )
-                
-                # Boundary loss
-                return F.mse_loss(pred_edges, target_edges)
-            
             def forward(self, pred, target):
-                # Multi-component loss with proven weights (0.6 Focal + 0.3 Dice + 0.1 Boundary)
+                # SIMPLIFIED: Focus on Focal + Dice (most important components)
                 focal = self._focal_loss(pred, target)
                 dice = self._dice_loss(pred, target)
-                boundary = self._boundary_loss(pred, target)
                 
-                # Weighted combination from successful approach
-                total_loss = 0.6 * focal + 0.3 * dice + 0.1 * boundary
+                # 70% Focal + 30% Dice (remove problematic boundary loss for now)
+                total_loss = 0.7 * focal + 0.3 * dice
                 
                 return {
                     'total': total_loss,
                     'focal': focal,
                     'dice': dice,
-                    'boundary': boundary
+                    'boundary': torch.tensor(0.0, device=pred.device)  # Dummy for logging
                 }
         
-        loss_fn = EdgeLandingLoss(class_weights)
-        print(f"   Loss: Multi-component (0.6 Focal + 0.3 Dice + 0.1 Boundary)")
+        loss_fn = StableLandingLoss(class_weights)
+        print(f"   Loss: Stable (0.7 Focal + 0.3 Dice, boundary disabled)")
         
         # Use differential learning rates like successful EdgeLandingNet approach
         backbone_params = []
@@ -581,8 +558,8 @@ class UniversalTrainer:
         # FIXED: Add gradient clipping for stability
         max_grad_norm = 1.0
         
-        # FIXED: Add early stopping to prevent overfitting
-        early_stopping_patience = max(10, num_epochs // 3)  # More patience for learning
+        # FIXED: Add early stopping to prevent overfitting (increased patience)
+        early_stopping_patience = max(15, num_epochs // 2)  # Even more patience for EdgeLandingNet learning
         epochs_without_improvement = 0
         
         # Initialize W&B for this stage
@@ -1240,8 +1217,8 @@ def main():
                 crops_per_image=1
             )
             
-            # FIXED: Better learning rate for stage 1
-            stage1_lr = 5e-4 if args.epochs <= 30 else 1e-3
+            # FIXED: Better learning rate for stage 1 (increased for EdgeLandingNet)
+            stage1_lr = 1e-3 if args.epochs <= 30 else 2e-3  # Higher LR for faster convergence
             
             results = trainer.train_stage(
                 stage=1,
