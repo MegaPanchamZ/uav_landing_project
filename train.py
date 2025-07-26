@@ -435,12 +435,23 @@ class UniversalTrainer:
                 print("📊 Computing class weights...")
                 base_weights = train_dataset.get_class_weights().to(self.device)
                 
-                # Apply more aggressive balancing for extreme class imbalance
-                # Square root dampening to prevent over-weighting rare classes
+                # Apply EdgeLandingNet-style class weighting
+                # For extremely rare classes, use more aggressive weighting
                 class_weights = torch.sqrt(base_weights)
                 
-                # Cap maximum weight to prevent instability
-                class_weights = torch.clamp(class_weights, min=0.1, max=5.0)
+                # Apply safety multipliers like successful EdgeLandingNet approach
+                if len(class_weights) >= 6:
+                    # Check for extremely rare classes and boost them more
+                    for i, weight in enumerate(base_weights):
+                        if weight > 50:  # Very high inverse frequency weight = very rare class
+                            class_weights[i] *= 3.0  # Boost extremely rare classes more
+                    
+                    class_weights[3] *= 2.0  # Emphasize water/hazard detection (class 3)
+                    class_weights[4] *= 2.5  # Extra emphasis on car detection (extremely rare)
+                    class_weights[2] *= 1.5  # More emphasis on building detection (very rare)
+                
+                # Cap maximum weight to prevent instability, but allow higher for rare classes
+                class_weights = torch.clamp(class_weights, min=0.1, max=20.0)  # Higher cap for extremely rare classes
                 
                 print(f"   Base weights: {base_weights.cpu().numpy()}")
                 print(f"   Balanced weights: {class_weights.cpu().numpy()}")
@@ -751,36 +762,49 @@ class UniversalTrainer:
         
         return stage_metrics
     
-    def _analyze_class_distribution(self, train_dataset, val_dataset, max_samples=50):
+    def _analyze_class_distribution(self, train_dataset, val_dataset, max_samples=200):
         """Analyze class distribution in train and validation sets."""
-        print("   Analyzing class distribution (sampling first 50 images)...")
+        print(f"   Analyzing class distribution (sampling {max_samples} images)...")
         
         for split_name, dataset in [("Train", train_dataset), ("Val", val_dataset)]:
             class_counts = np.zeros(6)
-            total_pixels = 0
+            samples_analyzed = 0
             
-            # Sample a few batches to get distribution estimate
+            # Sample more images and sample them evenly distributed
             sample_count = min(max_samples, len(dataset))
             
-            for i in range(0, sample_count, max(1, sample_count // 10)):
+            # FIXED: Sample evenly across the dataset, not just every 10th
+            sample_indices = np.linspace(0, len(dataset) - 1, sample_count, dtype=int)
+            
+            for i in sample_indices:
                 try:
                     sample = dataset[i]
-                    mask = sample['mask'].numpy() if hasattr(sample['mask'], 'numpy') else sample['mask']
                     
-                    # Count pixels per class
+                    # Handle both tensor and numpy masks
+                    if hasattr(sample['mask'], 'numpy'):
+                        mask = sample['mask'].numpy()
+                    elif hasattr(sample['mask'], 'cpu'):
+                        mask = sample['mask'].cpu().numpy()
+                    else:
+                        mask = sample['mask']
+                    
+                    # FIXED: Count pixels per class correctly
                     for class_id in range(6):
                         count = np.sum(mask == class_id)
                         class_counts[class_id] += count
-                        total_pixels += count if class_id == 0 else 0  # Only count once
                     
-                    total_pixels = np.sum(class_counts)
+                    samples_analyzed += 1
                     
                 except Exception as e:
+                    print(f"     ⚠️  Error analyzing sample {i}: {e}")
                     continue
+            
+            # FIXED: Calculate total pixels correctly
+            total_pixels = np.sum(class_counts)
             
             if total_pixels > 0:
                 class_ratios = class_counts / total_pixels
-                print(f"   {split_name} set class distribution:")
+                print(f"   {split_name} set class distribution ({samples_analyzed} samples analyzed):")
                 for class_id, ratio in enumerate(class_ratios):
                     class_name = CLASS_NAMES.get(class_id, f'class_{class_id}')
                     print(f"     {class_name}: {ratio:.2%} ({class_counts[class_id]:.0f} pixels)")
@@ -793,8 +817,14 @@ class UniversalTrainer:
                 if np.min(class_ratios[class_ratios > 0]) < 0.005:
                     rare_classes = [CLASS_NAMES[i] for i, ratio in enumerate(class_ratios) if 0 < ratio < 0.005]
                     print(f"     ⚠️  Very rare classes: {', '.join(rare_classes)}")
+                
+                # ADDED: Check for completely missing classes
+                missing_classes = [CLASS_NAMES[i] for i, count in enumerate(class_counts) if count == 0]
+                if missing_classes:
+                    print(f"     ❌ Missing classes: {', '.join(missing_classes)}")
+                    
             else:
-                print(f"   {split_name} set: Unable to analyze distribution")
+                print(f"   {split_name} set: Unable to analyze distribution - no valid samples found")
         
         print()
     
@@ -1168,28 +1198,35 @@ def main():
         if args.stage == 1:
             print(f"\n🚀 Running Stage 1: Semantic Foundation Training")
             
+            # FIXED: Use 256x256 input size to match EdgeLandingNet design
             transforms = create_semantic_drone_transforms(
-                input_size=(512, 512),
+                input_size=(256, 256),  # Match EdgeLandingNet
                 is_training=True,
-                augmentation_profile="balanced"  # OPTIMIZATION: Use balanced profile for speed
+                augmentation_profile="extreme"  # Use extreme augmentation like successful approach
             )
             
             train_dataset = SemanticDroneDataset(
                 data_root=args.sdd_data_root,
                 split="train",
                 transform=transforms,
-                class_mapping="unified_6_class"
+                class_mapping="unified_6_class",
+                target_resolution=(256, 256),  # Ensure consistent resolution
+                use_random_crops=True,  # Enable extreme augmentation
+                crops_per_image=8  # Multiple crops like successful approach
             )
             
             val_dataset = SemanticDroneDataset(
                 data_root=args.sdd_data_root,
                 split="val",
                 transform=create_semantic_drone_transforms(
-                    input_size=(512, 512),
+                    input_size=(256, 256),  # Match EdgeLandingNet
                     is_training=False,
-                    augmentation_profile="fast"  # OPTIMIZATION: Fast for validation
+                    augmentation_profile="light"
                 ),
-                class_mapping="unified_6_class"
+                class_mapping="unified_6_class",
+                target_resolution=(256, 256),
+                use_random_crops=False,
+                crops_per_image=1
             )
             
             # FIXED: Better learning rate for stage 1
@@ -1209,7 +1246,7 @@ def main():
             
             datasets = create_dronedeploy_datasets(
                 data_root=args.dronedeploy_data_root,
-                patch_size=512,
+                patch_size=256,  # Match EdgeLandingNet input size
                 augmentation=True
             )
             
@@ -1228,18 +1265,27 @@ def main():
         elif args.stage == 3:
             print(f"\n🚀 Running Stage 3: Domain Adaptation")
             
-            transforms = create_udd6_transforms(is_training=True)
+            transforms = create_udd6_transforms(
+                is_training=True,
+                input_size=(256, 256)  # Match EdgeLandingNet
+            )
             
             train_dataset = UDD6Dataset(
                 data_root=args.udd6_data_root,
                 split="train",
-                transform=transforms
+                transform=transforms,
+                target_resolution=(256, 256),  # Match EdgeLandingNet
+                use_random_crops=True,
+                crops_per_image=8  # Extreme augmentation
             )
             
             val_dataset = UDD6Dataset(
                 data_root=args.udd6_data_root,
                 split="val",
-                transform=create_udd6_transforms(is_training=False)
+                transform=create_udd6_transforms(is_training=False),
+                target_resolution=(256, 256),  # Match EdgeLandingNet
+                use_random_crops=False,
+                crops_per_image=1
             )
             
             # FIXED: Better learning rate for stage 3 (fine-tuning)

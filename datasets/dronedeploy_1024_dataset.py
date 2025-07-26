@@ -101,7 +101,8 @@ class DroneDeploy1024Dataset(Dataset):
         print(f"🚁 Loading DroneDeploy dataset for {split}...")
         
         # OPTIMIZATION: Create fast lookup table for class mapping
-        self.mapping_lut = np.zeros(256, dtype=np.uint8)
+        # Initialize with clutter (class 5) instead of ground (class 0) for unmapped values
+        self.mapping_lut = np.full(256, 5, dtype=np.uint8)  # Default to clutter
         for dd_class, landing_class in self.DRONEDEPLOY_TO_LANDING.items():
             if dd_class < 256:  # Ensure valid index
                 self.mapping_lut[dd_class] = landing_class
