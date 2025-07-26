@@ -165,30 +165,36 @@ class HardwareDetector:
                 config['batch_size'] = 32
                 config['num_workers'] = max(4, base_num_workers // 2)
             elif 'rtx' in gpu_name or 'titan' in gpu_name:
-                # RTX series optimizations
+                # RTX series optimizations - MEMORY CONSERVATIVE
                 if gpu_memory >= 24:  # RTX 3090/4090, Titan
                     config['batch_size'] = 16
-                    config['num_workers'] = max(4, base_num_workers // 2)
+                    config['num_workers'] = max(4, min(6, base_num_workers // 2))  # Cap for memory
                 else:
                     config['batch_size'] = 8
-                    config['num_workers'] = max(4, base_num_workers // 3)
+                    config['num_workers'] = max(2, min(4, base_num_workers // 4))  # Very conservative for 8GB cards
             elif 'gtx' in gpu_name:
                 # GTX series (older)
                 config['batch_size'] = 4
-                config['num_workers'] = 4
+                config['num_workers'] = 2  # Conservative for older cards
                 config['mixed_precision'] = float(gpu.get('compute_capability', '0.0')) >= 7.0
             else:
                 # Generic GPU
                 if gpu_memory >= 8:
                     config['batch_size'] = 8
-                    config['num_workers'] = max(4, base_num_workers // 3)
+                    config['num_workers'] = max(2, min(4, base_num_workers // 4))  # Conservative
                 else:
                     config['batch_size'] = 4
-                    config['num_workers'] = 4
+                    config['num_workers'] = 2
             
-            ## OPTIMIZATION ##: Enable persistent workers if we have workers
+            ## OPTIMIZATION ##: Enable persistent workers if we have workers, but be memory-aware
             if config['num_workers'] > 0:
-                config['persistent_workers'] = True
+                # For large datasets like Semantic Drone, reduce workers with persistent_workers
+                available_memory_gb = self.memory_info['available_gb']
+                if available_memory_gb < 32:  # Less than 32GB RAM
+                    config['num_workers'] = max(1, config['num_workers'] // 2)
+                    config['persistent_workers'] = config['num_workers'] <= 4  # Only for small worker counts
+                else:
+                    config['persistent_workers'] = True
         
         # CPU optimizations
         cpu_cores = min(self.cpu_info['logical_cores'], 16)  # Cap at 16
@@ -196,12 +202,19 @@ class HardwareDetector:
             # CPU-only training
             config['num_workers'] = max(1, cpu_cores // 2)
         
-        # Memory-based adjustments
+        # Memory-based adjustments - MORE AGGRESSIVE
         available_memory = self.memory_info['available_gb']
-        if available_memory < 8:
-            # Reduce workers if system RAM is very low to avoid thrashing
+        if available_memory < 16:  # Less than 16GB available
+            # Very low memory - minimal workers
+            config['num_workers'] = 1
+            config['batch_size'] = max(1, config['batch_size'] // 4)
+            config['persistent_workers'] = False
+            config['prefetch_factor'] = 1
+        elif available_memory < 32:  # Less than 32GB available
+            # Low memory - reduce workers and batch size
             config['num_workers'] = max(1, config['num_workers'] // 2)
-            config['batch_size'] = max(1, config['batch_size'] // 2)
+            config['batch_size'] = max(2, config['batch_size'] // 2)
+            config['persistent_workers'] = config['num_workers'] <= 2
         elif available_memory > 64:
             # Lots of RAM - can use more workers
             if config['num_workers'] < cpu_cores:
@@ -535,44 +548,51 @@ class UniversalTrainer:
         
         pbar = tqdm(dataloader, desc='Training')
         
-        for batch in pbar:
-            images = batch['image'].to(self.device, non_blocking=True)
-            targets = batch['mask'].to(self.device, non_blocking=True).long()
-            
-            optimizer.zero_grad()
-            
-            # Forward pass with optional mixed precision
-            with autocast(enabled=self.config['mixed_precision']):
-                outputs = self.model(images)
-                if isinstance(outputs, dict):
-                    predictions = outputs['main']
-                else:
-                    predictions = outputs
+        try:
+            for batch in pbar:
+                images = batch['image'].to(self.device, non_blocking=True)
+                targets = batch['mask'].to(self.device, non_blocking=True).long()
                 
-                loss_dict = loss_fn(predictions, targets, 'dronedeploy', class_weights)
-                loss = loss_dict['total']
-            
-            # Backward pass with optional mixed precision
-            if self.config['mixed_precision'] and self.scaler:
-                self.scaler.scale(loss).backward()
-                # 🔧 FIXED: Add gradient clipping
-                self.scaler.unscale_(optimizer)
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
-                self.scaler.step(optimizer)
-                self.scaler.update()
-            else:
-                loss.backward()
-                # 🔧 FIXED: Add gradient clipping
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
-                optimizer.step()
-            
-            total_loss += loss.item()
-            num_batches += 1
-            self.global_step += 1
-            
-            pbar.set_postfix({'loss': f'{loss.item():.4f}'})
+                optimizer.zero_grad()
+                
+                # Forward pass with optional mixed precision
+                with autocast(enabled=self.config['mixed_precision']):
+                    outputs = self.model(images)
+                    if isinstance(outputs, dict):
+                        predictions = outputs['main']
+                    else:
+                        predictions = outputs
+                    
+                    loss_dict = loss_fn(predictions, targets, 'dronedeploy', class_weights)
+                    loss = loss_dict['total']
+                
+                # Backward pass with optional mixed precision
+                if self.config['mixed_precision'] and self.scaler:
+                    self.scaler.scale(loss).backward()
+                    # 🔧 FIXED: Add gradient clipping
+                    self.scaler.unscale_(optimizer)
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
+                    self.scaler.step(optimizer)
+                    self.scaler.update()
+                else:
+                    loss.backward()
+                    # 🔧 FIXED: Add gradient clipping
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
+                    optimizer.step()
+                
+                total_loss += loss.item()
+                num_batches += 1
+                self.global_step += 1
+                
+                pbar.set_postfix({'loss': f'{loss.item():.4f}'})
         
-        return {'loss': total_loss / num_batches}
+        except (SystemError, RuntimeError, MemoryError) as e:
+            print(f"\n⚠️  DataLoader memory error detected: {e}")
+            print("💡 Try reducing --batch_size and --num_workers")
+            print("💡 For Semantic Drone Dataset, try: --batch_size 4 --num_workers 2")
+            raise
+        
+        return {'loss': total_loss / max(num_batches, 1)}
     
     def _validate_epoch(self, dataloader, loss_fn, class_weights):
         """Validate for one epoch."""
