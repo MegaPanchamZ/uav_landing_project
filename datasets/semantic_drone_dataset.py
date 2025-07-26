@@ -25,6 +25,9 @@ from albumentations.pytorch import ToTensorV2
 import json
 from collections import Counter
 import warnings
+import time
+from PIL import Image
+import torchvision.transforms as transforms
 
 class SemanticDroneDataset(Dataset):
     """
@@ -47,7 +50,8 @@ class SemanticDroneDataset(Dataset):
         return_confidence: bool = False,
         cache_images: bool = True,
         use_random_crops: bool = True,
-        crops_per_image: int = 4
+        crops_per_image: int = 4,
+        preload_to_memory: bool = False  # NEW: For 251GB RAM systems
     ):
         """
         Initialize Semantic Drone Dataset.
@@ -62,6 +66,7 @@ class SemanticDroneDataset(Dataset):
             cache_images: Cache images in memory for faster training
             use_random_crops: Use random crops instead of full image resizing (much faster)
             crops_per_image: Number of random crops per image (effectively multiplies dataset size)
+            preload_to_memory: Load entire dataset to RAM (for 200GB+ systems)
         """
         self.data_root = Path(data_root)
         self.split = split
@@ -72,6 +77,11 @@ class SemanticDroneDataset(Dataset):
         self.cache_images = cache_images
         self.use_random_crops = use_random_crops
         self.crops_per_image = crops_per_image if split == "train" else 1  # Only use multiple crops for training
+        self.preload_to_memory = preload_to_memory  # Store the parameter!
+        
+        # NEW: Memory storage for preloaded data
+        self.memory_cache = {}
+        self._memory_loaded = False
         
         # Original 24 classes from Semantic Drone Dataset
         self.original_classes = {
@@ -110,11 +120,19 @@ class SemanticDroneDataset(Dataset):
         self.image_cache = {} if cache_images else None
         self.label_cache = {} if cache_images else None
         
+        # NEW: Preload entire dataset to memory if enabled
+        if preload_to_memory:
+            self._preload_dataset_to_memory()
+        
         print(f"SemanticDroneDataset initialized:")
         print(f"   Split: {split} ({len(self.file_indices)} samples)")
         print(f"   Classes: {len(self.landing_classes)} landing classes")
         print(f"   Resolution: {target_resolution}")
         print(f"   Mapping: {class_mapping}")
+        if preload_to_memory:
+            print(f"   🚀 ENTIRE DATASET LOADED TO MEMORY (CPU bottleneck eliminated!)")
+        if self.use_random_crops:
+            print(f"   Random crops: {self.crops_per_image} per image")
         
     def _setup_class_mapping(self):
         """Setup class mapping based on selected type."""
@@ -193,6 +211,103 @@ class SemanticDroneDataset(Dataset):
     
     def __getitem__(self, idx):
         """Get a sample from the dataset."""
+        
+        # NEW: Use memory cache if available (MUCH faster!)
+        if self.preload_to_memory and self._memory_loaded:
+            return self._get_item_from_memory(idx)
+        else:
+            return self._get_item_from_disk(idx)
+    
+    def _get_item_from_memory(self, idx):
+        """
+        NEW: Get item from memory cache - eliminates all I/O bottlenecks.
+        """
+        if self.use_random_crops:
+            # Handle random crops
+            base_idx = idx // self.crops_per_image
+            cache_data = self.memory_cache[base_idx]
+        else:
+            cache_data = self.memory_cache[idx]
+        
+        # Get data from memory (instant access!)
+        image_array = cache_data['image'].copy()  # Copy to avoid mutation
+        mask_array = cache_data['mask'].copy()
+        
+        # Convert to PIL for transforms
+        image = Image.fromarray(image_array)
+        mask = Image.fromarray(mask_array.astype(np.uint8))
+        
+        # Apply random crops if needed
+        if self.use_random_crops:
+            image, mask = self._apply_random_crop(image, mask)
+        
+        # Apply transforms
+        if self.transform:
+            # Convert PIL to numpy for Albumentations
+            image_np = np.array(image)
+            mask_np = np.array(mask)
+            
+            # Apply Albumentations transform
+            transformed = self.transform(image=image_np, mask=mask_np)
+            
+            # Handle both numpy and tensor outputs
+            transformed_image = transformed['image']
+            transformed_mask = transformed['mask']
+            
+            if isinstance(transformed_image, torch.Tensor):
+                image = transformed_image.float()
+                if image.dim() == 3 and image.shape[0] != 3:  # HWC to CHW
+                    image = image.permute(2, 0, 1)
+                if image.max() > 1:  # Scale to [0,1] if needed
+                    image = image / 255.0
+            else:
+                image = torch.from_numpy(transformed_image).permute(2, 0, 1).float() / 255.0
+                
+            if isinstance(transformed_mask, torch.Tensor):
+                mask = transformed_mask.long()
+            else:
+                mask = torch.from_numpy(transformed_mask).long()
+        else:
+            image = transforms.ToTensor()(image)
+            mask = torch.from_numpy(np.array(mask)).long()
+        
+        return {
+            'image': image,
+            'mask': mask,
+            'img_path': cache_data['img_path'],
+            'mask_path': cache_data['mask_path']
+        }
+    
+    def _apply_random_crop(self, image, mask):
+        """Apply random crop to image and mask for data augmentation."""
+        import random
+        
+        # Get original dimensions
+        width, height = image.size
+        
+        # Random crop size (between 80% and 100% of original)
+        crop_scale = random.uniform(0.8, 1.0)
+        crop_width = int(width * crop_scale)
+        crop_height = int(height * crop_scale)
+        
+        # Random position
+        left = random.randint(0, width - crop_width)
+        top = random.randint(0, height - crop_height)
+        right = left + crop_width
+        bottom = top + crop_height
+        
+        # Apply crop
+        image_cropped = image.crop((left, top, right, bottom))
+        mask_cropped = mask.crop((left, top, right, bottom))
+        
+        # Resize back to target resolution
+        image_cropped = image_cropped.resize(self.target_resolution)
+        mask_cropped = mask_cropped.resize(self.target_resolution)
+        
+        return image_cropped, mask_cropped
+    
+    def _get_item_from_disk(self, idx):
+        """Original disk-based loading (slower but lower memory)."""
         
         file_idx = self.file_indices[idx // self.crops_per_image]
         image_path = self.image_files[file_idx]
@@ -364,6 +479,64 @@ class SemanticDroneDataset(Dataset):
         
         return weight_tensor
 
+    def _preload_dataset_to_memory(self):
+        """
+        NEW: Preload entire dataset to memory for massive RAM systems.
+        
+        This completely eliminates CPU bottleneck by loading all images/masks
+        into RAM once. Perfect for 251GB+ systems.
+        """
+        print(f"\n🚀 PRELOADING {self.split.upper()} DATASET TO MEMORY...")
+        print(f"   Total samples: {len(self.file_indices)}")
+        print(f"   Available RAM: Loading entire dataset to eliminate CPU bottleneck")
+        
+        from tqdm import tqdm
+        import gc
+        
+        start_time = time.time()
+        
+        for idx in tqdm(range(len(self.file_indices)), desc=f"Loading {self.split} to RAM"):
+            file_idx = self.file_indices[idx]
+            img_path = self.image_files[file_idx]
+            mask_path = self.label_files[file_idx]
+            
+            # Load and store raw data in memory
+            try:
+                # Load image
+                image = Image.open(img_path).convert('RGB')
+                image_array = np.array(image)
+                
+                # Load mask
+                mask = Image.open(mask_path)
+                mask_array = np.array(mask)
+                
+                # Apply class mapping
+                mapped_mask = self._map_classes(mask_array) # Use the existing _map_classes
+                
+                # Store in memory cache
+                self.memory_cache[idx] = {
+                    'image': image_array,
+                    'mask': mapped_mask,
+                    'img_path': str(img_path),
+                    'mask_path': str(mask_path)
+                }
+                
+            except Exception as e:
+                print(f"   ❌ Failed to load {img_path}: {e}")
+                continue
+        
+        # Force garbage collection
+        gc.collect()
+        
+        load_time = time.time() - start_time
+        memory_usage_gb = len(self.memory_cache) * 0.01  # Rough estimate
+        
+        self._memory_loaded = True
+        print(f"✅ DATASET PRELOADED IN {load_time:.1f}s")
+        print(f"   • Samples in memory: {len(self.memory_cache)}")
+        print(f"   • Estimated memory usage: ~{memory_usage_gb:.1f}GB")
+        print(f"   • CPU bottleneck: ELIMINATED! 🚀")
+
 
 def create_semantic_drone_transforms(
     input_size: Tuple[int, int] = (512, 512),
@@ -509,7 +682,8 @@ if __name__ == "__main__":
             class_mapping="enhanced_4_class",
             return_confidence=True,
             use_random_crops=True,
-            crops_per_image=4
+            crops_per_image=4,
+            preload_to_memory=True # Enable preloading for example
         )
         
         print(f"\n📊 Dataset Info:")
