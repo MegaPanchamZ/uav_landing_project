@@ -242,7 +242,7 @@ class HardwareDetector:
         print(f"   Python: {self.system_info['python_version']}")
         
         print(f"\n💾 Memory: {self.memory_info['total_gb']:.1f} GB total, {self.memory_info['available_gb']:.1f} GB available")
-        print(f"🔧 CPU: {self.cpu_info['physical_cores']} cores ({self.cpu_info['logical_cores']} threads)")
+        print(f"CPU: {self.cpu_info['physical_cores']} cores ({self.cpu_info['logical_cores']} threads)")
         
         if self.gpu_info['available']:
             print(f"\n🚀 GPU Information:")
@@ -433,10 +433,20 @@ class UniversalTrainer:
         if hasattr(train_dataset, 'get_class_weights'):
             try:
                 print("📊 Computing class weights...")
-                class_weights = train_dataset.get_class_weights().to(self.device)
-                print(f"   Class weights: {class_weights.cpu().numpy()}")
+                base_weights = train_dataset.get_class_weights().to(self.device)
+                
+                # Apply more aggressive balancing for extreme class imbalance
+                # Square root dampening to prevent over-weighting rare classes
+                class_weights = torch.sqrt(base_weights)
+                
+                # Cap maximum weight to prevent instability
+                class_weights = torch.clamp(class_weights, min=0.1, max=5.0)
+                
+                print(f"   Base weights: {base_weights.cpu().numpy()}")
+                print(f"   Balanced weights: {class_weights.cpu().numpy()}")
             except Exception as e:
                 print(f"   ⚠️  Failed to compute class weights: {e}")
+                class_weights = None
         elif hasattr(train_dataset, 'get_sample_weights'):
             try:
                 print("📊 Computing sample weights...")
@@ -444,46 +454,36 @@ class UniversalTrainer:
                 print(f"   Sample weights available")
             except Exception as e:
                 print(f"   ⚠️  Failed to compute sample weights: {e}")
+                class_weights = None
+        else:
+            class_weights = None
         
-        # Setup training components - use advanced safety-aware loss
-        print("🎯 Initializing advanced safety-aware loss function...")
+        # Setup training components - START WITH SIMPLE LOSS FOR DEBUGGING
+        print("🎯 Using simplified loss function for stability...")
         
-        # Convert class weights to safety weights if available
-        safety_weights = None
-        if class_weights is not None:
-            # Landing safety priorities: ground=1.0, vegetation=0.8, building=1.2, water=2.0, car=1.5, clutter=1.0
-            safety_multipliers = torch.tensor([1.0, 0.8, 1.2, 2.0, 1.5, 1.0], device=self.device)
-            safety_weights = class_weights * safety_multipliers
-            print(f"   Safety weights: {safety_weights.cpu().numpy()}")
-        
-        loss_fn = CombinedSafetyLoss(
-            num_classes=6,
-            focal_alpha=0.25,
-            focal_gamma=2.0,
-            dice_weight=1.0,
-            boundary_weight=0.5,
-            uncertainty_weight=0.2,
-            safety_weights=safety_weights.cpu().numpy().tolist() if safety_weights is not None else None
+        # Simple but effective loss function
+        loss_fn = nn.CrossEntropyLoss(
+            weight=class_weights,
+            ignore_index=-1,
+            label_smoothing=0.1  # Helps with overconfident predictions
         )
-        print(f"   Loss components: Focal + Dice + Boundary + Uncertainty")
+        print(f"   Loss: Weighted CrossEntropy with label smoothing")
         
         optimizer = optim.AdamW(self.model.parameters(), lr=learning_rate, weight_decay=1e-4)
         
-        # 🔧 FIXED: Better learning rate scheduling for stability
-        if num_epochs <= 30:
-            # For short training, use plateau scheduler instead of aggressive cosine
-            scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-                optimizer, mode='max', factor=0.5, patience=5, min_lr=1e-6
-            )
-        else:
-            # For longer training, use gentle cosine annealing
-            scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=learning_rate*0.1)
+        # FIXED: Use cosine annealing for stable learning
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, 
+            T_max=num_epochs, 
+            eta_min=learning_rate*0.01  # Less aggressive minimum
+        )
+        print(f"   Scheduler: CosineAnnealing (eta_min={learning_rate*0.01:.2e})")
         
-        # 🔧 FIXED: Add gradient clipping for stability
+        # FIXED: Add gradient clipping for stability
         max_grad_norm = 1.0
         
-        # 🔧 FIXED: Add early stopping to prevent overfitting
-        early_stopping_patience = max(5, num_epochs // 4)  # Dynamic patience
+        # FIXED: Add early stopping to prevent overfitting
+        early_stopping_patience = max(10, num_epochs // 3)  # More patience for learning
         epochs_without_improvement = 0
         
         # Initialize W&B for this stage
@@ -553,11 +553,8 @@ class UniversalTrainer:
                 val_loader, loss_fn, class_weights
             )
             
-            # Update scheduler
-            if isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
-                scheduler.step(val_metrics['miou'])  # Use validation mIoU for plateau scheduler
-            else:
-                scheduler.step()  # Standard step for cosine annealing
+            # Update scheduler (cosine annealing)
+            scheduler.step()
             
             # Save checkpoint
             is_best = val_metrics['miou'] > best_miou
@@ -568,7 +565,7 @@ class UniversalTrainer:
             else:
                 epochs_without_improvement += 1
             
-            # 🔧 FIXED: Early stopping check
+            # FIXED: Early stopping check
             if epochs_without_improvement >= early_stopping_patience:
                 print(f"\n⚠️  Early stopping triggered after {epochs_without_improvement} epochs without improvement")
                 print(f"   Best mIoU achieved: {best_miou:.4f}")
@@ -747,14 +744,8 @@ class UniversalTrainer:
                     else:
                         predictions = outputs
                     
-                    # Format outputs for CombinedSafetyLoss
-                    if isinstance(outputs, dict):
-                        outputs_dict = outputs
-                    else:
-                        outputs_dict = {'main': predictions}
-                    
-                    loss_dict = loss_fn(outputs_dict, targets)
-                    loss = loss_dict['total_loss']
+                    # Simple loss function call
+                    loss = loss_fn(predictions, targets)
                 
                 # Backward pass with optional mixed precision
                 if self.config['mixed_precision'] and self.scaler:
@@ -774,10 +765,8 @@ class UniversalTrainer:
                 batch_losses.append(loss.item())
                 gradient_norms.append(grad_norm.item())
                 
-                # Track loss components
-                for key, value in loss_dict.items():
-                    if key != 'total_loss':
-                        loss_components[key] += value.item()
+                # Simple loss - no components to track
+                loss_components['cross_entropy'] = loss.item()
                 
                 num_batches += 1
                 self.global_step += 1
@@ -849,19 +838,12 @@ class UniversalTrainer:
                     else:
                         predictions = outputs
                     
-                    # Format outputs for CombinedSafetyLoss
-                    if isinstance(outputs, dict):
-                        outputs_dict = outputs
-                    else:
-                        outputs_dict = {'main': predictions}
+                    # Simple loss function call
+                    loss = loss_fn(predictions, targets)
+                    total_loss += loss.item()
                     
-                    loss_dict = loss_fn(outputs_dict, targets)
-                    total_loss += loss_dict['total_loss'].item()
-                    
-                    # Track loss components
-                    for key, value in loss_dict.items():
-                        if key != 'total_loss':
-                            loss_components[key] += value.item()
+                    # Simple loss - no components to track  
+                    loss_components['cross_entropy'] = loss.item()
                 
                 # Compute metrics
                 pred_classes = predictions.argmax(dim=1)
@@ -1123,7 +1105,7 @@ def main():
                 class_mapping="unified_6_class"
             )
             
-            # 🔧 FIXED: Better learning rate for stage 1
+            # FIXED: Better learning rate for stage 1
             stage1_lr = 5e-4 if args.epochs <= 30 else 1e-3
             
             results = trainer.train_stage(
@@ -1144,7 +1126,7 @@ def main():
                 augmentation=True
             )
             
-            # 🔧 FIXED: Better learning rate for stage 2
+            # FIXED: Better learning rate for stage 2
             stage2_lr = 1e-4 if args.epochs <= 30 else 5e-4
             
             results = trainer.train_stage(
@@ -1173,7 +1155,7 @@ def main():
                 transform=create_udd6_transforms(is_training=False)
             )
             
-            # 🔧 FIXED: Better learning rate for stage 3 (fine-tuning)
+            # FIXED: Better learning rate for stage 3 (fine-tuning)
             stage3_lr = 2e-5 if args.epochs <= 30 else 5e-5
             
             results = trainer.train_stage(
@@ -1189,7 +1171,7 @@ def main():
         print(f"   Final mIoU: {results['final_miou']:.4f}")
         print(f"   Best model: {args.checkpoint_dir}/stage{args.stage}_best.pth")
         
-        # 🔧 FIXED: Add training recommendations
+        # FIXED: Add training recommendations
         if results['final_miou'] < 0.3:
             print(f"\n💡 Training Tips for Better Performance:")
             print(f"   • Try longer training: --epochs 50")
