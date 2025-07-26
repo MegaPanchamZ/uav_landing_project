@@ -1050,7 +1050,7 @@ def main():
                     is_training=True,
                     augmentation_profile="balanced"  # OPTIMIZATION: Use balanced profile
                 ),
-                class_mapping="advanced_6_class"
+                class_mapping="unified_6_class"
             )
             stage_name = "Stage 1: Semantic Foundation"
         elif args.stage == 2:
@@ -1109,7 +1109,7 @@ def main():
                 data_root=args.sdd_data_root,
                 split="train",
                 transform=transforms,
-                class_mapping="advanced_6_class"
+                class_mapping="unified_6_class"
             )
             
             val_dataset = SemanticDroneDataset(
@@ -1120,7 +1120,7 @@ def main():
                     is_training=False,
                     augmentation_profile="fast"  # OPTIMIZATION: Fast for validation
                 ),
-                class_mapping="advanced_6_class"
+                class_mapping="unified_6_class"
             )
             
             # 🔧 FIXED: Better learning rate for stage 1

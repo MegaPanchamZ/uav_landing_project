@@ -185,6 +185,37 @@ class SemanticDroneDataset(Dataset):
                 4: "physical_obstacle",
                 5: "critical_hazard"
             }
+        elif self.class_mapping_type == "unified_6_class":
+            # UNIFIED 6-class mapping consistent with DroneDeploy and UDD6
+            # This ensures consistent semantic meaning across all datasets in progressive training
+            self.class_mapping = {
+                # 0: ground - safe flat landing surfaces
+                1: 0, 2: 0, 4: 0,      # paved-area, dirt, gravel → ground (safe flat surfaces)
+                
+                # 1: vegetation - trees, grass (emergency landing acceptable)
+                3: 1, 8: 1, 19: 1, 20: 1,  # grass, vegetation, tree, bald-tree → vegetation
+                
+                # 2: building - obstacles to avoid  
+                9: 2, 10: 2, 11: 2, 12: 2, 13: 2, 14: 2,  # roof, wall, window, door, fence, fence-pole → building
+                
+                # 3: water - critical hazard
+                5: 3, 7: 3,            # water, pool → water
+                
+                # 4: car - dynamic obstacles
+                17: 4, 18: 4,          # car, bicycle → car
+                
+                # 5: clutter - unknown/mixed areas
+                0: 5, 6: 5, 15: 5, 16: 5, 21: 5, 22: 5, 23: 5  # unlabeled, rocks, person, dog, ar-marker, obstacle, conflicting → clutter
+            }
+            
+            self.landing_classes = {
+                0: "ground",       # Safe flat landing surfaces (roads, dirt, pavement)
+                1: "vegetation",   # Trees, grass (emergency landing acceptable)
+                2: "building",     # Buildings, walls, obstacles to avoid
+                3: "water",        # Water bodies, pools (critical hazard)
+                4: "car",          # Cars, vehicles (dynamic obstacles)
+                5: "clutter"       # Unknown, mixed debris, people, animals
+            }
         else:
             raise ValueError(f"Unknown class mapping: {self.class_mapping_type}")
     
