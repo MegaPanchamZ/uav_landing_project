@@ -20,7 +20,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, ConcatDataset
 import torch.nn.functional as F
-from torch.amp import autocast, GradScaler
+from torch.cuda.amp import GradScaler, autocast
 import numpy as np
 from pathlib import Path
 import json
@@ -229,7 +229,7 @@ class A100ProgressiveTrainer:
         }
         
         # Mixed precision scaler
-        self.scaler = GradScaler('cuda') if use_amp else None
+        self.scaler = GradScaler() if use_amp else None
         
         # Initialize comprehensive W&B tracking
         if self.use_wandb:
@@ -242,58 +242,8 @@ class A100ProgressiveTrainer:
         print(f"   Checkpoint dir: {checkpoint_dir}")
         print(f"   W&B tracking: {use_wandb}")
     
-    def _optimize_cpu_settings(self):
-        """
-        CPU BOTTLENECK SOLUTION: Apply research-backed system optimizations.
-        
-        Based on NVIDIA research and PyTorch team recommendations for A100 systems.
-        Reduces DataLoader process overhead and CPU contention.
-        """
-        import os
-        
-        # Optimize CPU threading for A100 + 32 vCPU
-        # Utilize ALL 32 cores for maximum performance
-        os.environ['OMP_NUM_THREADS'] = '16'  # Half of 32 cores for optimal threading
-        os.environ['MKL_NUM_THREADS'] = '16'  # Match OMP threads  
-        os.environ['NUMEXPR_NUM_THREADS'] = '16'
-        
-        # Reduce Python process overhead
-        os.environ['PYTHONOPTIMIZE'] = '1'
-        os.environ['PYTHONUNBUFFERED'] = '1'
-        
-        # PyTorch CPU optimizations for DataLoader  
-        torch.set_num_threads(16)  # Match environment
-        
-        # cuDNN optimizations for consistent input sizes (512x512)
-        torch.backends.cudnn.benchmark = True  # Find fastest algorithms
-        torch.backends.cudnn.deterministic = False  # Allow non-deterministic for speed
-        
-        # Memory optimization
-        torch.backends.cuda.matmul.allow_tf32 = True  # Use TF32 for faster matmul
-        torch.backends.cudnn.allow_tf32 = True
-        
-        print("🔧 CPU Bottleneck Fixes Applied:")
-        print(f"   • CPU threads: 8 (optimized for 32 vCPU + DataLoader)")
-        print(f"   • Process optimization: Enabled")
-        print(f"   • cuDNN benchmark: True (for 512x512 inputs)")
-        print(f"   • TF32 acceleration: Enabled")
-    
     def _setup_wandb_tracking(self):
         """Setup comprehensive W&B tracking with custom metrics."""
-        # Initialize W&B first
-        if not wandb.run:
-            wandb.init(
-                project="uav-a100-progressive",
-                name=f"stage1_semantic_foundation",
-                config={
-                    "model": "EnhancedEdgeLandingNet",
-                    "batch_size": 256,
-                    "memory_optimized": True,
-                    "cpu_bottleneck_fixed": True
-                },
-                tags=["a100", "memory-optimized", "cpu-fixed", "progressive"]
-            )
-        
         # Define custom metrics for W&B
         wandb.define_metric("epoch")
         wandb.define_metric("global_step")
@@ -469,7 +419,7 @@ class A100ProgressiveTrainer:
         self,
         data_root: str,
         num_epochs: int = 50,
-        batch_size: int = 32,  # Optimal for A100 performance
+        batch_size: int = 256,  # Massive batch for A100 SXM + 251GB RAM
         lr: float = 1e-3
     ) -> Dict[str, float]:
         """
@@ -504,7 +454,7 @@ class A100ProgressiveTrainer:
             use_random_crops=True,
             crops_per_image=8,  # More crops for massive RAM
             cache_images=True,   # Keep disk cache as backup
-            preload_to_memory=False  # 🚀 FAST: No memory preloading overhead!
+            preload_to_memory=True  # 🔥 LOAD ENTIRE DATASET TO RAM!
         )
         
         val_dataset = SemanticDroneDataset(
@@ -517,26 +467,25 @@ class A100ProgressiveTrainer:
             class_mapping="advanced_6_class",
             use_random_crops=False,
             cache_images=True,
-            preload_to_memory=False  # 🚀 FAST: No memory preloading overhead!
+            preload_to_memory=True  # 🔥 VALIDATION ALSO IN RAM!
         )
         
         print(f"   Train samples: {len(train_dataset)}")
         print(f"   Val samples: {len(val_dataset)}")
         
-        # SOLUTION 4: UTILIZE ALL 32 CPU CORES for maximum speed!
-        print("🔥 Using ALL 32 CPU cores for maximum throughput")
+        # SOLUTION 4: MINIMAL WORKERS (data already in RAM!)
+        # With memory preloading, we need VERY few workers
+        print("🔥 Optimizing DataLoaders for memory-based data (minimal CPU overhead)")
         
         train_loader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=True,
-            num_workers=24, pin_memory=True, drop_last=True,  # Use 24 of 32 cores!
-            persistent_workers=True, prefetch_factor=4,  # Aggressive prefetching
-            multiprocessing_context='spawn'
+            num_workers=2, pin_memory=True, drop_last=True,  # Only 2 workers needed!
+            persistent_workers=False, prefetch_factor=1,  # Minimal prefetching
         )
         val_loader = DataLoader(
             val_dataset, batch_size=batch_size, shuffle=False,
-            num_workers=8, pin_memory=True,  # 8 cores for validation
-            persistent_workers=True, prefetch_factor=2,
-            multiprocessing_context='spawn'
+            num_workers=1, pin_memory=True,  # Single worker for validation
+            persistent_workers=False, prefetch_factor=1,
         )
         
         # Get class weights
@@ -548,8 +497,20 @@ class A100ProgressiveTrainer:
         optimizer = optim.AdamW(self.model.parameters(), lr=lr, weight_decay=1e-4)
         scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
         
-        # W&B already initialized in constructor
+        # Initialize wandb
         if self.use_wandb:
+            wandb.init(
+                project="uav-a100-progressive",
+                name=f"stage1_semantic_foundation",
+                config={
+                    'stage': 1,
+                    'dataset': 'semantic_drone',
+                    'num_epochs': num_epochs,
+                    'batch_size': batch_size,
+                    'learning_rate': lr,
+                    'model': 'MobileNetV3Edge'
+                }
+            )
             wandb.watch(self.model, log_freq=100)
         
         # Training loop
@@ -677,10 +638,13 @@ class A100ProgressiveTrainer:
         optimizer = optim.AdamW(self.model.parameters(), lr=lr, weight_decay=1e-4)
         scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
         
-        # W&B already initialized in constructor
+        # Update wandb
         if self.use_wandb:
-            wandb.config.update({
-                'stage': 2,
+            wandb.init(
+                project="uav-a100-progressive",
+                name=f"stage2_landing_specialization",
+                config={
+                    'stage': 2,
                     'dataset': 'dronedeploy',
                     'num_epochs': num_epochs,
                     'batch_size': batch_size,
@@ -914,7 +878,7 @@ class A100ProgressiveTrainer:
             optimizer.zero_grad()
             
             # Mixed precision forward pass
-            with autocast('cuda', enabled=self.use_amp):
+            with autocast(enabled=self.use_amp):
                 outputs = self.model(images)
                 if isinstance(outputs, dict):
                     predictions = outputs['main']
@@ -1023,7 +987,7 @@ class A100ProgressiveTrainer:
                 targets = batch['mask'].to(self.device, non_blocking=True).long()
                 
                 # Mixed precision forward pass
-                with autocast('cuda', enabled=self.use_amp):
+                with autocast(enabled=self.use_amp):
                     outputs = self.model(images)
                     if isinstance(outputs, dict):
                         predictions = outputs['main']
@@ -1166,7 +1130,7 @@ def main():
             results = trainer.train_stage1_semantic_foundation(
                 data_root=args.sdd_data_root,
                 num_epochs=args.stage1_epochs,
-                batch_size=16,  # 🚀 FAST: Optimal for A100 speed!
+                batch_size=256,  # 🔥 A100 SXM optimization!
                 lr=1e-3
             )
             
