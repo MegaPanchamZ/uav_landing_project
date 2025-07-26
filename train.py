@@ -15,6 +15,12 @@ Supports:
 - Mixed precision training
 - W&B integration
 - Comprehensive logging and checkpointing
+
+OPTIMIZATIONS:
+- Persistent workers to eliminate process spawn overhead
+- Improved num_workers logic based on CPU cores
+- Prefetching for smoother data pipeline
+- DataLoader profiling tool for empirical optimization
 """
 
 import os
@@ -122,7 +128,10 @@ class HardwareDetector:
             'num_workers': 2,
             'pin_memory': False,
             'mixed_precision': False,
-            'gradient_accumulation': 1
+            'gradient_accumulation': 1,
+            ## OPTIMIZATION ##: Add persistent_workers and prefetch_factor to config
+            'persistent_workers': False,
+            'prefetch_factor': 2
         }
         
         # GPU optimizations
@@ -136,53 +145,70 @@ class HardwareDetector:
             gpu_memory = gpu['memory']
             gpu_name = gpu['name'].lower()
             
+            ## OPTIMIZATION ##: More aggressive num_workers based on CPU cores
+            # A good rule of thumb is to start with the number of logical cores.
+            # We cap it at 16 to avoid excessive resource usage on high-end servers.
+            cpu_cores = self.cpu_info['logical_cores']
+            base_num_workers = min(cpu_cores, 16)
+            
             # Optimize based on GPU type and memory
             if 'a100' in gpu_name:
                 # A100 optimizations
                 if gpu_memory >= 40:  # A100-40GB or A100-80GB
                     config['batch_size'] = 64
-                    config['num_workers'] = 8
+                    config['num_workers'] = base_num_workers
                 else:
                     config['batch_size'] = 32
-                    config['num_workers'] = 6
+                    config['num_workers'] = max(6, base_num_workers // 2)
             elif 'v100' in gpu_name:
                 # V100 optimizations
-                config['batch_size'] = 16
-                config['num_workers'] = 4
+                config['batch_size'] = 32
+                config['num_workers'] = max(4, base_num_workers // 2)
             elif 'rtx' in gpu_name or 'titan' in gpu_name:
                 # RTX series optimizations
                 if gpu_memory >= 24:  # RTX 3090/4090, Titan
                     config['batch_size'] = 16
-                    config['num_workers'] = 4
+                    config['num_workers'] = max(4, base_num_workers // 2)
                 else:
                     config['batch_size'] = 8
-                    config['num_workers'] = 4
+                    config['num_workers'] = max(4, base_num_workers // 3)
             elif 'gtx' in gpu_name:
                 # GTX series (older)
                 config['batch_size'] = 4
-                config['num_workers'] = 2
-                config['mixed_precision'] = False  # May not support
+                config['num_workers'] = 4
+                config['mixed_precision'] = float(gpu.get('compute_capability', '0.0')) >= 7.0
             else:
                 # Generic GPU
                 if gpu_memory >= 8:
                     config['batch_size'] = 8
-                    config['num_workers'] = 4
+                    config['num_workers'] = max(4, base_num_workers // 3)
                 else:
                     config['batch_size'] = 4
-                    config['num_workers'] = 2
+                    config['num_workers'] = 4
+            
+            ## OPTIMIZATION ##: Enable persistent workers if we have workers
+            if config['num_workers'] > 0:
+                config['persistent_workers'] = True
         
         # CPU optimizations
-        cpu_cores = min(self.cpu_info['logical_cores'], 8)  # Cap at 8
-        config['num_workers'] = min(config['num_workers'], cpu_cores - 1)
+        cpu_cores = min(self.cpu_info['logical_cores'], 16)  # Cap at 16
+        if not self.gpu_info['available']:
+            # CPU-only training
+            config['num_workers'] = max(1, cpu_cores // 2)
         
         # Memory-based adjustments
         available_memory = self.memory_info['available_gb']
         if available_memory < 8:
-            config['batch_size'] = max(1, config['batch_size'] // 2)
+            # Reduce workers if system RAM is very low to avoid thrashing
             config['num_workers'] = max(1, config['num_workers'] // 2)
+            config['batch_size'] = max(1, config['batch_size'] // 2)
         elif available_memory > 64:
-            # Lots of RAM - can use more workers and larger batches
-            config['num_workers'] = min(config['num_workers'] * 2, cpu_cores)
+            # Lots of RAM - can use more workers
+            if config['num_workers'] < cpu_cores:
+                config['num_workers'] = min(config['num_workers'] * 2, cpu_cores)
+        
+        # Ensure num_workers is at least 0
+        config['num_workers'] = max(0, config['num_workers'])
         
         return config
     
@@ -318,6 +344,9 @@ class UniversalTrainer:
         print(f"   Device: {self.device}")
         print(f"   Batch size: {self.config['batch_size']}")
         print(f"   Workers: {self.config['num_workers']}")
+        ## OPTIMIZATION ##: Display new config options
+        print(f"   Persistent Workers: {self.config.get('persistent_workers', False)}")
+        print(f"   Prefetch Factor: {self.config.get('prefetch_factor', 'N/A')}")
         print(f"   Mixed precision: {self.config['mixed_precision']}")
         print(f"   W&B: {self.use_wandb}")
     
@@ -337,22 +366,37 @@ class UniversalTrainer:
         print(f"   Train samples: {len(train_dataset)}")
         print(f"   Val samples: {len(val_dataset)}")
         
-        # Create data loaders
+        ## OPTIMIZATION ##: Common DataLoader arguments with optimizations
+        loader_kwargs = {
+            'num_workers': self.config['num_workers'],
+            'pin_memory': self.config['pin_memory']
+        }
+        
+        # Add persistent_workers and prefetch_factor if available
+        if self.config.get('persistent_workers', False) and self.config['num_workers'] > 0:
+            loader_kwargs['persistent_workers'] = True
+            loader_kwargs['prefetch_factor'] = self.config.get('prefetch_factor', 2)
+        
+        # Create optimized data loaders
         train_loader = DataLoader(
             train_dataset,
             batch_size=self.config['batch_size'],
             shuffle=True,
-            num_workers=self.config['num_workers'],
-            pin_memory=self.config['pin_memory'],
-            drop_last=True
+            drop_last=True,
+            **loader_kwargs
         )
+        
+        # Validation loader (no need for persistent workers or prefetching for val)
+        val_loader_kwargs = {
+            'num_workers': self.config['num_workers'],
+            'pin_memory': self.config['pin_memory']
+        }
         
         val_loader = DataLoader(
             val_dataset,
             batch_size=self.config['batch_size'],
             shuffle=False,
-            num_workers=self.config['num_workers'],
-            pin_memory=self.config['pin_memory']
+            **val_loader_kwargs
         )
         
         # Get class weights if available
@@ -603,6 +647,40 @@ class UniversalTrainer:
         print(f"💾 Checkpoint saved: {checkpoint_path}")
 
 
+## OPTIMIZATION ##: A new function to profile the dataloader performance
+def profile_dataloader(dataloader: DataLoader, stage_name: str, num_steps: int = 100):
+    """
+    Measures the speed of a DataLoader to diagnose bottlenecks.
+    """
+    print(f"\n⏱️  Profiling DataLoader for '{stage_name}'...")
+    print(f"   Will fetch {num_steps} batches.")
+    
+    start_time = time.time()
+    
+    # Iterate through the dataloader to measure fetch time
+    for i, batch in enumerate(tqdm(dataloader, total=num_steps, desc="Profiling")):
+        if i >= num_steps - 1:
+            break
+    
+    end_time = time.time()
+    
+    total_time = end_time - start_time
+    steps_per_sec = num_steps / total_time
+    
+    print("\n--- DataLoader Profile Report ---")
+    print(f"  Stage: {stage_name}")
+    print(f"  Total time for {num_steps} batches: {total_time:.2f} seconds")
+    print(f"  Speed: {steps_per_sec:.2f} batches/second")
+    print("---------------------------------")
+    print("💡 Tip: To improve speed, try adjusting --num_workers.")
+    print("   - If speed increases with more workers, you are CPU/IO bound.")
+    print("   - If speed plateaus or decreases, you have reached the optimal number of workers.")
+    print("   - Run this profiler with different --num_workers values to find the sweet spot.")
+    
+    # Exit after profiling so we don't proceed to train
+    sys.exit(0)
+
+
 def main():
     parser = argparse.ArgumentParser(description='UAV Landing System - Universal Training')
     
@@ -637,6 +715,9 @@ def main():
                         help='Enable Weights & Biases logging')
     parser.add_argument('--resume', type=str, default=None,
                         help='Resume from checkpoint')
+    ## OPTIMIZATION ##: Add a profiling flag
+    parser.add_argument('--profile-dataloader', action='store_true',
+                        help='Run a quick benchmark on the DataLoader and exit.')
     
     args = parser.parse_args()
     
@@ -652,15 +733,19 @@ def main():
     # Override with user parameters if provided
     if args.batch_size:
         config['batch_size'] = args.batch_size
-    if args.num_workers:
+    if args.num_workers is not None:  # Allow setting num_workers to 0
         config['num_workers'] = args.num_workers
+        # If user manually sets workers, respect that for persistent_workers
+        config['persistent_workers'] = config['device'] == 'cuda' and config['num_workers'] > 0
     if args.device:
         config['device'] = args.device
     
-    print(f"\n⚙️  Training Configuration:")
+    print(f"\n⚙️  Optimized Training Configuration:")
     print(f"   Device: {config['device']}")
     print(f"   Batch size: {config['batch_size']}")
     print(f"   Workers: {config['num_workers']}")
+    print(f"   Persistent Workers: {config.get('persistent_workers', False)}")
+    print(f"   Prefetch Factor: {config.get('prefetch_factor', 2)}")
     print(f"   Mixed precision: {config['mixed_precision']}")
     
     # Create model
@@ -670,6 +755,53 @@ def main():
         use_uncertainty=True,
         pretrained=True
     )
+    
+    ## OPTIMIZATION ##: Logic to handle the new profiling feature
+    if args.profile_dataloader:
+        # Create a dummy dataset and loader to profile
+        if args.stage == 1:
+            dataset = SemanticDroneDataset(
+                data_root=args.sdd_data_root,
+                split="train",
+                transform=create_semantic_drone_transforms(
+                    input_size=(512, 512),
+                    is_training=True
+                ),
+                class_mapping="advanced_6_class"
+            )
+            stage_name = "Stage 1: Semantic Foundation"
+        elif args.stage == 2:
+            datasets = create_dronedeploy_datasets(
+                data_root=args.dronedeploy_data_root,
+                patch_size=512,
+                augmentation=True
+            )
+            dataset = datasets['train']
+            stage_name = "Stage 2: Landing Specialization"
+        else:  # stage 3
+            dataset = UDD6Dataset(
+                data_root=args.udd6_data_root,
+                split="train",
+                transform=create_udd6_transforms(is_training=True)
+            )
+            stage_name = "Stage 3: Domain Adaptation"
+        
+        loader_kwargs = {
+            'num_workers': config['num_workers'],
+            'pin_memory': config['pin_memory']
+        }
+        if config.get('persistent_workers', False) and config['num_workers'] > 0:
+            loader_kwargs['persistent_workers'] = True
+            loader_kwargs['prefetch_factor'] = config.get('prefetch_factor', 2)
+        
+        loader = DataLoader(
+            dataset,
+            batch_size=config['batch_size'],
+            shuffle=True,
+            **loader_kwargs
+        )
+        profile_dataloader(loader, stage_name)
+        # The program will exit inside the profile function
     
     # Create trainer
     trainer = UniversalTrainer(
