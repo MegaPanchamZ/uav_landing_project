@@ -553,6 +553,30 @@ def create_datasets(sdd_data_root, dronedeploy_data_root, udd6_data_root, input_
     return train_dataset, val_dataset
 
 
+def custom_collate_fn(batch):
+    """Custom collate function to handle different dataset formats."""
+    import torch
+    
+    # Extract only the essential keys that all datasets should have
+    images = []
+    masks = []
+    
+    for sample in batch:
+        if 'image' in sample:
+            images.append(sample['image'])
+        if 'mask' in sample:
+            masks.append(sample['mask'])
+    
+    # Stack into batches
+    result = {}
+    if images:
+        result['image'] = torch.stack(images)
+    if masks:
+        result['mask'] = torch.stack(masks)
+    
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description='Train Edge UAV Landing Model')
     parser.add_argument('--sdd_data_root', required=True, help='Semantic Drone Dataset path')
@@ -603,14 +627,15 @@ def main():
         print(f"❌ Dataset creation failed: {e}")
         return
     
-    # Create data loaders
+    # Create data loaders with custom collate function
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
         shuffle=True,
         num_workers=args.num_workers,
         pin_memory=True,
-        drop_last=True
+        drop_last=True,
+        collate_fn=custom_collate_fn
     )
     
     val_loader = DataLoader(
@@ -618,7 +643,8 @@ def main():
         batch_size=args.batch_size,
         shuffle=False,
         num_workers=args.num_workers,
-        pin_memory=True
+        pin_memory=True,
+        collate_fn=custom_collate_fn
     )
     
     # Create model
