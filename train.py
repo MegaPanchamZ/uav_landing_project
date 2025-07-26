@@ -56,7 +56,7 @@ except ImportError:
 warnings.filterwarnings('ignore')
 
 # Import our components
-from models.mobilenetv3_edge_model import create_edge_model
+from models.edge_landing_net import EdgeLandingNet, create_edge_model
 from datasets.semantic_drone_dataset import SemanticDroneDataset, create_semantic_drone_transforms
 from datasets.dronedeploy_1024_dataset import DroneDeploy1024Dataset, create_dronedeploy_datasets
 from datasets.udd6_dataset import UDD6Dataset, create_udd6_transforms
@@ -458,26 +458,108 @@ class UniversalTrainer:
         else:
             class_weights = None
         
-        # Setup training components - START WITH SIMPLE LOSS FOR DEBUGGING
-        print("🎯 Using simplified loss function for stability...")
+        # Setup training components - USE PROVEN MULTI-COMPONENT LOSS
+        print("🎯 Using proven multi-component loss from successful EdgeLandingNet...")
         
-        # Simple but effective loss function
-        loss_fn = nn.CrossEntropyLoss(
-            weight=class_weights,
-            ignore_index=-1,
-            label_smoothing=0.1  # Helps with overconfident predictions
-        )
-        print(f"   Loss: Weighted CrossEntropy with label smoothing")
+        # Create the successful multi-component loss function
+        class EdgeLandingLoss(nn.Module):
+            def __init__(self, class_weights, alpha=0.25, gamma=2.0):
+                super().__init__()
+                self.class_weights = class_weights
+                self.alpha = alpha
+                self.gamma = gamma
+            
+            def _focal_loss(self, pred, target):
+                """Focal loss for class imbalance."""
+                ce_loss = F.cross_entropy(pred, target, weight=self.class_weights, reduction='none')
+                pt = torch.exp(-ce_loss)
+                focal_loss = self.alpha * (1 - pt) ** self.gamma * ce_loss
+                return focal_loss.mean()
+            
+            def _dice_loss(self, pred, target):
+                """Dice loss for segmentation quality."""
+                smooth = 1e-5
+                pred_soft = F.softmax(pred, dim=1)
+                
+                dice_loss = 0
+                for class_id in range(pred.size(1)):
+                    pred_class = pred_soft[:, class_id]
+                    target_class = (target == class_id).float()
+                    
+                    intersection = (pred_class * target_class).sum()
+                    union = pred_class.sum() + target_class.sum()
+                    
+                    dice_coeff = (2 * intersection + smooth) / (union + smooth)
+                    dice_loss += 1 - dice_coeff
+                
+                return dice_loss / pred.size(1)
+            
+            def _boundary_loss(self, pred, target):
+                """Boundary loss for edge preservation."""
+                # Sobel filters for edge detection
+                sobel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], 
+                                     dtype=torch.float32, device=pred.device).unsqueeze(0).unsqueeze(0)
+                sobel_y = torch.tensor([[-1, -2, -1], [0, 0, 0], [1, 2, 1]], 
+                                     dtype=torch.float32, device=pred.device).unsqueeze(0).unsqueeze(0)
+                
+                # Compute edges for prediction and target
+                pred_edges = torch.sqrt(
+                    F.conv2d(pred.argmax(1).float().unsqueeze(1), sobel_x, padding=1) ** 2 +
+                    F.conv2d(pred.argmax(1).float().unsqueeze(1), sobel_y, padding=1) ** 2
+                )
+                
+                target_edges = torch.sqrt(
+                    F.conv2d(target.float().unsqueeze(1), sobel_x, padding=1) ** 2 +
+                    F.conv2d(target.float().unsqueeze(1), sobel_y, padding=1) ** 2
+                )
+                
+                # Boundary loss
+                return F.mse_loss(pred_edges, target_edges)
+            
+            def forward(self, pred, target):
+                # Multi-component loss with proven weights (0.6 Focal + 0.3 Dice + 0.1 Boundary)
+                focal = self._focal_loss(pred, target)
+                dice = self._dice_loss(pred, target)
+                boundary = self._boundary_loss(pred, target)
+                
+                # Weighted combination from successful approach
+                total_loss = 0.6 * focal + 0.3 * dice + 0.1 * boundary
+                
+                return {
+                    'total': total_loss,
+                    'focal': focal,
+                    'dice': dice,
+                    'boundary': boundary
+                }
         
-        optimizer = optim.AdamW(self.model.parameters(), lr=learning_rate, weight_decay=1e-4)
+        loss_fn = EdgeLandingLoss(class_weights)
+        print(f"   Loss: Multi-component (0.6 Focal + 0.3 Dice + 0.1 Boundary)")
         
-        # FIXED: Use cosine annealing for stable learning
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(
+        # Use differential learning rates like successful EdgeLandingNet approach
+        backbone_params = []
+        head_params = []
+        
+        for name, param in self.model.named_parameters():
+            if 'backbone' in name or 'features' in name:
+                backbone_params.append(param)
+            else:
+                head_params.append(param)
+        
+        # Different learning rates (backbone gets 10x lower LR)
+        optimizer = optim.AdamW([
+            {'params': backbone_params, 'lr': learning_rate * 0.1, 'weight_decay': 1e-4},  # Lower LR for pretrained
+            {'params': head_params, 'lr': learning_rate, 'weight_decay': 1e-4}  # Higher LR for new layers
+        ])
+        print(f"   Optimizer: AdamW with differential LR (backbone: {learning_rate*0.1:.2e}, head: {learning_rate:.2e})")
+        
+        # Use CosineAnnealingWarmRestarts like successful EdgeLandingNet approach
+        scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
             optimizer, 
-            T_max=num_epochs, 
-            eta_min=learning_rate*0.01  # Less aggressive minimum
+            T_0=num_epochs // 4,  # First restart
+            T_mult=2,  # Double restart period
+            eta_min=1e-6
         )
-        print(f"   Scheduler: CosineAnnealing (eta_min={learning_rate*0.01:.2e})")
+        print(f"   Scheduler: CosineAnnealingWarmRestarts (T_0={num_epochs//4}, T_mult=2)")
         
         # FIXED: Add gradient clipping for stability
         max_grad_norm = 1.0
@@ -744,8 +826,9 @@ class UniversalTrainer:
                     else:
                         predictions = outputs
                     
-                    # Simple loss function call
-                    loss = loss_fn(predictions, targets)
+                    # Multi-component loss function call
+                    loss_dict = loss_fn(predictions, targets)
+                    loss = loss_dict['total']
                 
                 # Backward pass with optional mixed precision
                 if self.config['mixed_precision'] and self.scaler:
@@ -765,8 +848,10 @@ class UniversalTrainer:
                 batch_losses.append(loss.item())
                 gradient_norms.append(grad_norm.item())
                 
-                # Simple loss - no components to track
-                loss_components['cross_entropy'] = loss.item()
+                # Track multi-component loss
+                for component, value in loss_dict.items():
+                    if component != 'total':
+                        loss_components[component] += value.item()
                 
                 num_batches += 1
                 self.global_step += 1
@@ -838,12 +923,15 @@ class UniversalTrainer:
                     else:
                         predictions = outputs
                     
-                    # Simple loss function call
-                    loss = loss_fn(predictions, targets)
+                    # Multi-component loss function call
+                    loss_dict = loss_fn(predictions, targets)
+                    loss = loss_dict['total']
                     total_loss += loss.item()
                     
-                    # Simple loss - no components to track  
-                    loss_components['cross_entropy'] = loss.item()
+                    # Track multi-component loss  
+                    for component, value in loss_dict.items():
+                        if component != 'total':
+                            loss_components[component] += value.item()
                 
                 # Compute metrics
                 pred_classes = predictions.argmax(dim=1)
@@ -1012,12 +1100,11 @@ def main():
     print(f"   Prefetch Factor: {config.get('prefetch_factor', 2)}")
     print(f"   Mixed precision: {config['mixed_precision']}")
     
-    # Create model
+    # Create EdgeLandingNet model
     model = create_edge_model(
-        model_type=args.model_type,
+        model_type="standard",  # Use proven EdgeLandingNet
         num_classes=6,
-        use_uncertainty=True,
-        pretrained=True
+        input_size=256  # Optimal size for edge inference
     )
     
     ## OPTIMIZATION ##: Logic to handle the new profiling feature
