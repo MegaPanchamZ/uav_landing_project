@@ -371,7 +371,23 @@ class UniversalTrainer:
         # Setup training components
         loss_fn = MultiDatasetLoss(num_classes=6)
         optimizer = optim.AdamW(self.model.parameters(), lr=learning_rate, weight_decay=1e-4)
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
+        
+        # 🔧 FIXED: Better learning rate scheduling for stability
+        if num_epochs <= 30:
+            # For short training, use plateau scheduler instead of aggressive cosine
+            scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer, mode='max', factor=0.5, patience=5, verbose=True, min_lr=1e-6
+            )
+        else:
+            # For longer training, use gentle cosine annealing
+            scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=learning_rate*0.1)
+        
+        # 🔧 FIXED: Add gradient clipping for stability
+        max_grad_norm = 1.0
+        
+        # 🔧 FIXED: Add early stopping to prevent overfitting
+        early_stopping_patience = max(5, num_epochs // 4)  # Dynamic patience
+        epochs_without_improvement = 0
         
         # Initialize W&B for this stage
         if self.use_wandb:
@@ -399,7 +415,7 @@ class UniversalTrainer:
             
             # Train
             train_metrics = self._train_epoch(
-                train_loader, loss_fn, optimizer, class_weights
+                train_loader, loss_fn, optimizer, class_weights, max_grad_norm
             )
             
             # Validate
@@ -408,13 +424,25 @@ class UniversalTrainer:
             )
             
             # Update scheduler
-            scheduler.step()
+            if isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
+                scheduler.step(val_metrics['miou'])  # Use validation mIoU for plateau scheduler
+            else:
+                scheduler.step()  # Standard step for cosine annealing
             
             # Save checkpoint
             is_best = val_metrics['miou'] > best_miou
             if is_best:
                 best_miou = val_metrics['miou']
+                epochs_without_improvement = 0  # Reset counter
                 self._save_checkpoint(epoch, stage, val_metrics, f'stage{stage}_best.pth')
+            else:
+                epochs_without_improvement += 1
+            
+            # 🔧 FIXED: Early stopping check
+            if epochs_without_improvement >= early_stopping_patience:
+                print(f"\n⚠️  Early stopping triggered after {epochs_without_improvement} epochs without improvement")
+                print(f"   Best mIoU achieved: {best_miou:.4f}")
+                break
             
             # Log to W&B
             if self.use_wandb:
@@ -434,6 +462,13 @@ class UniversalTrainer:
             print(f"   Val Loss: {val_metrics['loss']:.4f}")
             print(f"   Val mIoU: {val_metrics['miou']:.4f}")
             print(f"   Best mIoU: {best_miou:.4f}")
+            print(f"   LR: {optimizer.param_groups[0]['lr']:.2e}")
+            
+            # 🔧 FIXED: Stability warnings
+            if val_metrics['loss'] > 2.0:
+                print("⚠️  WARNING: High validation loss detected - possible training instability")
+            if train_metrics['loss'] < 0.01 and val_metrics['loss'] > 1.0:
+                print("⚠️  WARNING: Possible overfitting detected (train loss very low, val loss high)")
         
         stage_metrics = {
             'final_miou': best_miou,
@@ -448,7 +483,7 @@ class UniversalTrainer:
         
         return stage_metrics
     
-    def _train_epoch(self, dataloader, loss_fn, optimizer, class_weights):
+    def _train_epoch(self, dataloader, loss_fn, optimizer, class_weights, max_grad_norm):
         """Train for one epoch."""
         self.model.train()
         total_loss = 0.0
@@ -476,10 +511,15 @@ class UniversalTrainer:
             # Backward pass with optional mixed precision
             if self.config['mixed_precision'] and self.scaler:
                 self.scaler.scale(loss).backward()
+                # 🔧 FIXED: Add gradient clipping
+                self.scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
                 self.scaler.step(optimizer)
                 self.scaler.update()
             else:
                 loss.backward()
+                # 🔧 FIXED: Add gradient clipping
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
                 optimizer.step()
             
             total_loss += loss.item()
@@ -666,12 +706,15 @@ def main():
                 class_mapping="advanced_6_class"
             )
             
+            # 🔧 FIXED: Better learning rate for stage 1
+            stage1_lr = 5e-4 if args.epochs <= 30 else 1e-3
+            
             results = trainer.train_stage(
                 stage=1,
                 train_dataset=train_dataset,
                 val_dataset=val_dataset,
                 num_epochs=args.epochs,
-                learning_rate=1e-3,
+                learning_rate=stage1_lr,
                 stage_name="Semantic Foundation"
             )
             
@@ -684,12 +727,15 @@ def main():
                 augmentation=True
             )
             
+            # 🔧 FIXED: Better learning rate for stage 2
+            stage2_lr = 1e-4 if args.epochs <= 30 else 5e-4
+            
             results = trainer.train_stage(
                 stage=2,
                 train_dataset=datasets['train'],
                 val_dataset=datasets['val'],
                 num_epochs=args.epochs,
-                learning_rate=1e-4,
+                learning_rate=stage2_lr,
                 stage_name="Landing Specialization"
             )
             
@@ -710,18 +756,36 @@ def main():
                 transform=create_udd6_transforms(is_training=False)
             )
             
+            # 🔧 FIXED: Better learning rate for stage 3 (fine-tuning)
+            stage3_lr = 2e-5 if args.epochs <= 30 else 5e-5
+            
             results = trainer.train_stage(
                 stage=3,
                 train_dataset=train_dataset,
                 val_dataset=val_dataset,
                 num_epochs=args.epochs,
-                learning_rate=5e-5,
+                learning_rate=stage3_lr,
                 stage_name="Domain Adaptation"
             )
         
         print(f"\n🎉 Training completed successfully!")
         print(f"   Final mIoU: {results['final_miou']:.4f}")
         print(f"   Best model: {args.checkpoint_dir}/stage{args.stage}_best.pth")
+        
+        # 🔧 FIXED: Add training recommendations
+        if results['final_miou'] < 0.3:
+            print(f"\n💡 Training Tips for Better Performance:")
+            print(f"   • Try longer training: --epochs 50")
+            print(f"   • Use data augmentation if not enabled")
+            print(f"   • Check dataset quality and balance")
+            print(f"   • Consider transfer learning from a pretrained stage")
+        
+        if args.stage == 1:
+            print(f"\n🚀 Next Step: Run Stage 2 Landing Specialization")
+            print(f"   python train.py --stage 2 --epochs 30")
+        elif args.stage == 2:
+            print(f"\n🚀 Next Step: Run Stage 3 Domain Adaptation") 
+            print(f"   python train.py --stage 3 --epochs 20")
         
     except KeyboardInterrupt:
         print(f"\n⚠️  Training interrupted by user")
