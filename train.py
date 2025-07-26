@@ -62,6 +62,16 @@ from datasets.dronedeploy_1024_dataset import DroneDeploy1024Dataset, create_dro
 from datasets.udd6_dataset import UDD6Dataset, create_udd6_transforms
 from losses.safety_aware_losses import CombinedSafetyLoss
 
+# Class names for better logging
+CLASS_NAMES = {
+    0: "ground",
+    1: "vegetation", 
+    2: "building",
+    3: "water",
+    4: "car",
+    5: "clutter"
+}
+
 
 class HardwareDetector:
     """Automatically detect and optimize for available hardware."""
@@ -412,21 +422,51 @@ class UniversalTrainer:
             **val_loader_kwargs
         )
         
-        # Get class weights if available
+        # Analyze class distribution and get weights
         class_weights = None
+        print("📊 Analyzing dataset class distribution...")
+        
+        # Quick class distribution analysis
+        self._analyze_class_distribution(train_dataset, val_dataset)
+        
+        # Get class weights if available
         if hasattr(train_dataset, 'get_class_weights'):
             try:
+                print("📊 Computing class weights...")
                 class_weights = train_dataset.get_class_weights().to(self.device)
-            except:
-                pass
+                print(f"   Class weights: {class_weights.cpu().numpy()}")
+            except Exception as e:
+                print(f"   ⚠️  Failed to compute class weights: {e}")
         elif hasattr(train_dataset, 'get_sample_weights'):
             try:
+                print("📊 Computing sample weights...")
                 class_weights = train_dataset.get_sample_weights().to(self.device)
-            except:
-                pass
+                print(f"   Sample weights available")
+            except Exception as e:
+                print(f"   ⚠️  Failed to compute sample weights: {e}")
         
-        # Setup training components
-        loss_fn = MultiDatasetLoss(num_classes=6)
+        # Setup training components - use advanced safety-aware loss
+        print("🎯 Initializing advanced safety-aware loss function...")
+        
+        # Convert class weights to safety weights if available
+        safety_weights = None
+        if class_weights is not None:
+            # Landing safety priorities: ground=1.0, vegetation=0.8, building=1.2, water=2.0, car=1.5, clutter=1.0
+            safety_multipliers = torch.tensor([1.0, 0.8, 1.2, 2.0, 1.5, 1.0], device=self.device)
+            safety_weights = class_weights * safety_multipliers
+            print(f"   Safety weights: {safety_weights.cpu().numpy()}")
+        
+        loss_fn = CombinedSafetyLoss(
+            num_classes=6,
+            focal_alpha=0.25,
+            focal_gamma=2.0,
+            dice_weight=1.0,
+            boundary_weight=0.5,
+            uncertainty_weight=0.2,
+            safety_weights=safety_weights.cpu().numpy().tolist() if safety_weights is not None else None
+        )
+        print(f"   Loss components: Focal + Dice + Boundary + Uncertainty")
+        
         optimizer = optim.AdamW(self.model.parameters(), lr=learning_rate, weight_decay=1e-4)
         
         # 🔧 FIXED: Better learning rate scheduling for stability
@@ -448,19 +488,52 @@ class UniversalTrainer:
         
         # Initialize W&B for this stage
         if self.use_wandb:
+            # Comprehensive W&B configuration
+            wandb_config = {
+                'stage': stage,
+                'stage_name': stage_name,
+                'num_epochs': num_epochs,
+                'batch_size': self.config['batch_size'],
+                'num_workers': self.config['num_workers'],
+                'learning_rate': learning_rate,
+                'early_stopping_patience': early_stopping_patience,
+                'max_grad_norm': max_grad_norm,
+                'mixed_precision': self.config['mixed_precision'],
+                'optimizer': 'AdamW',
+                'weight_decay': 1e-4,
+                'scheduler_type': 'ReduceLROnPlateau' if num_epochs <= 30 else 'CosineAnnealingLR',
+                
+                # Model info
+                'model_params': sum(p.numel() for p in self.model.parameters()),
+                'model_size_mb': sum(p.numel() * p.element_size() for p in self.model.parameters()) / 1024 / 1024,
+                
+                # Hardware info
+                'device': self.config['device'],
+                'gpu_memory_gb': torch.cuda.get_device_properties(0).total_memory / 1024**3 if torch.cuda.is_available() else 0,
+                'persistent_workers': self.config.get('persistent_workers', False),
+                'pin_memory': self.config.get('pin_memory', False),
+                
+                # Dataset info
+                'train_samples': len(train_dataset),
+                'val_samples': len(val_dataset),
+                'input_resolution': '512x512',
+                'num_classes': 6,
+                'class_names': list(CLASS_NAMES.values())
+            }
+            
+            # Add class weights if available
+            if class_weights is not None:
+                wandb_config['class_weights'] = class_weights.cpu().numpy().tolist()
+            
             wandb.init(
                 project="uav-landing-universal",
                 name=f"stage{stage}_{stage_name.lower().replace(' ', '_')}",
-                config={
-                    'stage': stage,
-                    'stage_name': stage_name,
-                    'num_epochs': num_epochs,
-                    'batch_size': self.config['batch_size'],
-                    'learning_rate': learning_rate,
-                    'hardware': self.config
-                },
+                config=wandb_config,
                 reinit=True
             )
+            
+            # Watch model for gradient and parameter tracking
+            wandb.watch(self.model, log_freq=100, log_graph=True)
         
         # Training loop
         best_miou = 0.0
@@ -501,31 +574,90 @@ class UniversalTrainer:
                 print(f"   Best mIoU achieved: {best_miou:.4f}")
                 break
             
-            # Log to W&B
+            # Comprehensive W&B logging
             if self.use_wandb:
-                wandb.log({
+                # Basic metrics
+                log_dict = {
                     'epoch': epoch,
                     'stage': stage,
                     'train_loss': train_metrics['loss'],
                     'val_loss': val_metrics['loss'],
                     'val_miou': val_metrics['miou'],
+                    'val_accuracy': val_metrics['accuracy'],
                     'learning_rate': optimizer.param_groups[0]['lr'],
-                    'best_miou': best_miou
-                })
+                    'best_miou': best_miou,
+                    'gradient_norm': train_metrics['gradient_norm'],
+                    'train_loss_std': train_metrics['loss_std'],
+                    'val_uncertainty': val_metrics['uncertainty']
+                }
+                
+                # Loss components
+                for component, value in train_metrics['loss_components'].items():
+                    log_dict[f'train_{component}_loss'] = value
+                for component, value in val_metrics['loss_components'].items():
+                    log_dict[f'val_{component}_loss'] = value
+                
+                # Per-class IoU with class names
+                for class_id, iou in enumerate(val_metrics['iou_per_class']):
+                    class_name = CLASS_NAMES.get(class_id, f'class_{class_id}')
+                    log_dict[f'iou_{class_name}'] = iou
+                
+                # Class distribution in validation set
+                for class_id, ratio in enumerate(val_metrics['class_distribution']):
+                    class_name = CLASS_NAMES.get(class_id, f'class_{class_id}')
+                    log_dict[f'val_class_ratio_{class_name}'] = ratio
+                
+                # Training stability indicators
+                log_dict['train_val_loss_gap'] = abs(train_metrics['loss'] - val_metrics['loss'])
+                log_dict['epochs_without_improvement'] = epochs_without_improvement
+                
+                wandb.log(log_dict)
             
-            # Print summary
+            # Enhanced print summary
             print(f"📊 Epoch {epoch} Summary:")
-            print(f"   Train Loss: {train_metrics['loss']:.4f}")
+            print(f"   Train Loss: {train_metrics['loss']:.4f} (±{train_metrics['loss_std']:.4f})")
             print(f"   Val Loss: {val_metrics['loss']:.4f}")
             print(f"   Val mIoU: {val_metrics['miou']:.4f}")
+            print(f"   Val Accuracy: {val_metrics['accuracy']:.4f}")
             print(f"   Best mIoU: {best_miou:.4f}")
             print(f"   LR: {optimizer.param_groups[0]['lr']:.2e}")
+            print(f"   Grad Norm: {train_metrics['gradient_norm']:.3f}")
             
-            # 🔧 FIXED: Stability warnings
+            # Loss components breakdown
+            if train_metrics['loss_components']:
+                print(f"   Loss Components:")
+                for component, value in train_metrics['loss_components'].items():
+                    print(f"     {component}: {value:.4f}")
+            
+            # Per-class IoU breakdown
+            print(f"   Per-class IoU:")
+            for class_id, iou in enumerate(val_metrics['iou_per_class']):
+                class_name = CLASS_NAMES.get(class_id, f'class_{class_id}')
+                pixels = val_metrics['per_class_pixels'][class_id]
+                ratio = val_metrics['class_distribution'][class_id]
+                print(f"     {class_name}: {iou:.4f} ({pixels:.0f} pixels, {ratio:.2%})")
+            
+            # Enhanced stability warnings
+            loss_gap = abs(train_metrics['loss'] - val_metrics['loss'])
+            print(f"   Train-Val Gap: {loss_gap:.4f}")
+            
             if val_metrics['loss'] > 2.0:
                 print("⚠️  WARNING: High validation loss detected - possible training instability")
-            if train_metrics['loss'] < 0.01 and val_metrics['loss'] > 1.0:
-                print("⚠️  WARNING: Possible overfitting detected (train loss very low, val loss high)")
+            if loss_gap > 1.0:
+                print("⚠️  WARNING: Large train-validation loss gap - possible overfitting")
+            if train_metrics['gradient_norm'] > 10.0:
+                print("⚠️  WARNING: High gradient norm - possible exploding gradients")
+            if val_metrics['uncertainty'] > 1.5:
+                print("⚠️  WARNING: High prediction uncertainty - model may be confused")
+            
+            # Check for class imbalance issues
+            class_ratios = val_metrics['class_distribution']
+            if np.max(class_ratios) > 0.8:
+                dominant_class = CLASS_NAMES[np.argmax(class_ratios)]
+                print(f"⚠️  WARNING: Severe class imbalance - {dominant_class} dominates ({np.max(class_ratios):.1%})")
+            elif np.min(class_ratios[class_ratios > 0]) < 0.01:
+                rare_classes = [CLASS_NAMES[i] for i, ratio in enumerate(class_ratios) if 0 < ratio < 0.01]
+                print(f"⚠️  WARNING: Very rare classes detected: {', '.join(rare_classes)}")
         
         stage_metrics = {
             'final_miou': best_miou,
@@ -540,16 +672,68 @@ class UniversalTrainer:
         
         return stage_metrics
     
+    def _analyze_class_distribution(self, train_dataset, val_dataset, max_samples=50):
+        """Analyze class distribution in train and validation sets."""
+        print("   Analyzing class distribution (sampling first 50 images)...")
+        
+        for split_name, dataset in [("Train", train_dataset), ("Val", val_dataset)]:
+            class_counts = np.zeros(6)
+            total_pixels = 0
+            
+            # Sample a few batches to get distribution estimate
+            sample_count = min(max_samples, len(dataset))
+            
+            for i in range(0, sample_count, max(1, sample_count // 10)):
+                try:
+                    sample = dataset[i]
+                    mask = sample['mask'].numpy() if hasattr(sample['mask'], 'numpy') else sample['mask']
+                    
+                    # Count pixels per class
+                    for class_id in range(6):
+                        count = np.sum(mask == class_id)
+                        class_counts[class_id] += count
+                        total_pixels += count if class_id == 0 else 0  # Only count once
+                    
+                    total_pixels = np.sum(class_counts)
+                    
+                except Exception as e:
+                    continue
+            
+            if total_pixels > 0:
+                class_ratios = class_counts / total_pixels
+                print(f"   {split_name} set class distribution:")
+                for class_id, ratio in enumerate(class_ratios):
+                    class_name = CLASS_NAMES.get(class_id, f'class_{class_id}')
+                    print(f"     {class_name}: {ratio:.2%} ({class_counts[class_id]:.0f} pixels)")
+                
+                # Check for severe imbalance
+                if np.max(class_ratios) > 0.8:
+                    dominant_class = CLASS_NAMES[np.argmax(class_ratios)]
+                    print(f"     ⚠️  Severe imbalance: {dominant_class} dominates")
+                    
+                if np.min(class_ratios[class_ratios > 0]) < 0.005:
+                    rare_classes = [CLASS_NAMES[i] for i, ratio in enumerate(class_ratios) if 0 < ratio < 0.005]
+                    print(f"     ⚠️  Very rare classes: {', '.join(rare_classes)}")
+            else:
+                print(f"   {split_name} set: Unable to analyze distribution")
+        
+        print()
+    
     def _train_epoch(self, dataloader, loss_fn, optimizer, class_weights, max_grad_norm):
-        """Train for one epoch."""
+        """Train for one epoch with comprehensive logging."""
         self.model.train()
         total_loss = 0.0
+        loss_components = defaultdict(float)
         num_batches = 0
+        
+        # Track gradient norms and learning dynamics
+        gradient_norms = []
+        batch_losses = []
         
         pbar = tqdm(dataloader, desc='Training')
         
         try:
-            for batch in pbar:
+            for batch_idx, batch in enumerate(pbar):
                 images = batch['image'].to(self.device, non_blocking=True)
                 targets = batch['mask'].to(self.device, non_blocking=True).long()
                 
@@ -563,28 +747,55 @@ class UniversalTrainer:
                     else:
                         predictions = outputs
                     
-                    loss_dict = loss_fn(predictions, targets, 'dronedeploy', class_weights)
-                    loss = loss_dict['total']
+                    # Format outputs for CombinedSafetyLoss
+                    if isinstance(outputs, dict):
+                        outputs_dict = outputs
+                    else:
+                        outputs_dict = {'main': predictions}
+                    
+                    loss_dict = loss_fn(outputs_dict, targets)
+                    loss = loss_dict['total_loss']
                 
                 # Backward pass with optional mixed precision
                 if self.config['mixed_precision'] and self.scaler:
                     self.scaler.scale(loss).backward()
-                    # 🔧 FIXED: Add gradient clipping
+                    # Unscale for gradient norm calculation
                     self.scaler.unscale_(optimizer)
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
+                    grad_norm = torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
                     self.scaler.step(optimizer)
                     self.scaler.update()
                 else:
                     loss.backward()
-                    # 🔧 FIXED: Add gradient clipping
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
+                    grad_norm = torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
                     optimizer.step()
                 
+                # Track metrics
                 total_loss += loss.item()
+                batch_losses.append(loss.item())
+                gradient_norms.append(grad_norm.item())
+                
+                # Track loss components
+                for key, value in loss_dict.items():
+                    if key != 'total_loss':
+                        loss_components[key] += value.item()
+                
                 num_batches += 1
                 self.global_step += 1
                 
-                pbar.set_postfix({'loss': f'{loss.item():.4f}'})
+                # Enhanced progress bar
+                pbar.set_postfix({
+                    'loss': f'{loss.item():.4f}',
+                    'grad_norm': f'{grad_norm.item():.3f}'
+                })
+                
+                # Log detailed batch info every 50 batches
+                if batch_idx % 50 == 0 and self.use_wandb:
+                    wandb.log({
+                        'batch/train_loss': loss.item(),
+                        'batch/gradient_norm': grad_norm.item(),
+                        'batch/learning_rate': optimizer.param_groups[0]['lr'],
+                        'batch/step': self.global_step
+                    })
         
         except (SystemError, RuntimeError, MemoryError) as e:
             print(f"\n⚠️  DataLoader memory error detected: {e}")
@@ -592,22 +803,42 @@ class UniversalTrainer:
             print("💡 For Semantic Drone Dataset, try: --batch_size 4 --num_workers 2")
             raise
         
-        return {'loss': total_loss / max(num_batches, 1)}
+        # Calculate comprehensive metrics
+        avg_loss = total_loss / max(num_batches, 1)
+        avg_grad_norm = np.mean(gradient_norms) if gradient_norms else 0.0
+        loss_std = np.std(batch_losses) if len(batch_losses) > 1 else 0.0
+        
+        # Average loss components
+        for key in loss_components:
+            loss_components[key] /= max(num_batches, 1)
+        
+        return {
+            'loss': avg_loss,
+            'loss_components': dict(loss_components),
+            'gradient_norm': avg_grad_norm,
+            'loss_std': loss_std,
+            'num_batches': num_batches
+        }
     
     def _validate_epoch(self, dataloader, loss_fn, class_weights):
-        """Validate for one epoch."""
+        """Validate for one epoch with comprehensive metrics."""
         self.model.eval()
         total_loss = 0.0
+        loss_components = defaultdict(float)
         
         intersection = torch.zeros(6, device=self.device)
         union = torch.zeros(6, device=self.device)
+        class_pixel_counts = torch.zeros(6, device=self.device)
         total_correct = 0
         total_pixels = 0
+        
+        # Track prediction confidence
+        confidence_scores = []
         
         with torch.no_grad():
             pbar = tqdm(dataloader, desc='Validation')
             
-            for batch in pbar:
+            for batch_idx, batch in enumerate(pbar):
                 images = batch['image'].to(self.device, non_blocking=True)
                 targets = batch['mask'].to(self.device, non_blocking=True).long()
                 
@@ -618,8 +849,19 @@ class UniversalTrainer:
                     else:
                         predictions = outputs
                     
-                    loss_dict = loss_fn(predictions, targets, 'dronedeploy', class_weights)
-                    total_loss += loss_dict['total'].item()
+                    # Format outputs for CombinedSafetyLoss
+                    if isinstance(outputs, dict):
+                        outputs_dict = outputs
+                    else:
+                        outputs_dict = {'main': predictions}
+                    
+                    loss_dict = loss_fn(outputs_dict, targets)
+                    total_loss += loss_dict['total_loss'].item()
+                    
+                    # Track loss components
+                    for key, value in loss_dict.items():
+                        if key != 'total_loss':
+                            loss_components[key] += value.item()
                 
                 # Compute metrics
                 pred_classes = predictions.argmax(dim=1)
@@ -627,13 +869,19 @@ class UniversalTrainer:
                 total_correct += correct.item()
                 total_pixels += targets.numel()
                 
-                # Per-class IoU
+                # Track prediction confidence (entropy-based uncertainty)
+                pred_probs = F.softmax(predictions, dim=1)
+                entropy = -torch.sum(pred_probs * torch.log(pred_probs + 1e-8), dim=1)
+                confidence_scores.extend(entropy.flatten().cpu().numpy())
+                
+                # Per-class IoU and pixel counts
                 for class_id in range(6):
                     pred_mask = (pred_classes == class_id)
                     target_mask = (targets == class_id)
                     
                     intersection[class_id] += (pred_mask & target_mask).sum().float()
                     union[class_id] += (pred_mask | target_mask).sum().float()
+                    class_pixel_counts[class_id] += target_mask.sum().float()
         
         # Compute final metrics
         avg_loss = total_loss / len(dataloader)
@@ -641,11 +889,25 @@ class UniversalTrainer:
         iou_per_class = intersection / (union + 1e-8)
         miou = iou_per_class.mean().item()
         
+        # Average loss components
+        for key in loss_components:
+            loss_components[key] /= len(dataloader)
+        
+        # Class distribution analysis
+        class_distribution = class_pixel_counts / class_pixel_counts.sum()
+        
+        # Confidence analysis
+        avg_uncertainty = np.mean(confidence_scores) if confidence_scores else 0.0
+        
         return {
             'loss': avg_loss,
+            'loss_components': dict(loss_components),
             'miou': miou,
             'accuracy': overall_accuracy,
-            'iou_per_class': iou_per_class.cpu().numpy()
+            'iou_per_class': iou_per_class.cpu().numpy(),
+            'class_distribution': class_distribution.cpu().numpy(),
+            'uncertainty': avg_uncertainty,
+            'per_class_pixels': class_pixel_counts.cpu().numpy()
         }
     
     def _save_checkpoint(self, epoch, stage, metrics, filename):
