@@ -144,6 +144,12 @@ class HardwareDetector:
             'prefetch_factor': 2
         }
         
+        # FIXED: Windows multiprocessing workaround
+        if self.system_info['platform'] == 'Windows':
+            config['num_workers'] = 0  # Disable multiprocessing on Windows
+            config['persistent_workers'] = False
+            print("   ⚠️  Windows detected: Disabling multiprocessing workers to avoid pickle issues")
+        
         # GPU optimizations
         if self.gpu_info['available']:
             config['device'] = 'cuda'
@@ -1121,6 +1127,11 @@ def main():
         config['persistent_workers'] = config['device'] == 'cuda' and config['num_workers'] > 0
     if args.device:
         config['device'] = args.device
+    
+    # FIXED: Additional Windows safety check
+    if platform.system() == 'Windows' and config['num_workers'] > 0:
+        print("   ⚠️  Windows multiprocessing detected - this may cause issues")
+        print("   💡 If you see pickle errors, restart with --num_workers 0")
     
     print(f"\n⚙️  Optimized Training Configuration:")
     print(f"   Device: {config['device']}")
