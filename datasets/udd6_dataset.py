@@ -377,11 +377,12 @@ def create_udd6_transforms(
         # Urban-specific augmentations
         transforms.extend([
             A.RandomRotate90(p=0.8),  # All rotations valid for aerial
-            A.Flip(p=0.7),
+            A.HorizontalFlip(p=0.5),
+            A.VerticalFlip(p=0.3),
             A.RandomBrightnessContrast(p=0.8, brightness_limit=0.3, contrast_limit=0.3),
             A.HueSaturationValue(p=0.6, hue_shift_limit=15, sat_shift_limit=20, val_shift_limit=15),
-            A.RandomShadow(p=0.4),  # Building shadows
-            A.RandomFog(p=0.2),     # Weather conditions
+            A.RandomBrightnessContrast(p=0.3, brightness_limit=0.2, contrast_limit=0.1),  # Simulate shadow/fog effects
+            A.GaussianBlur(p=0.2, blur_limit=(3, 5)),  # Atmospheric effects
             A.GaussNoise(p=0.3, var_limit=(10, 30)),
         ])
     
